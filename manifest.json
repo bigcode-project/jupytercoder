@@ -1,0 +1,17 @@
+{
+    "manifest_version": 3,
+    "name": "Jupyter Data Capture",
+    "version": "1.0",
+    "description": "Capture data in Jupyter Notebook cells and send to a remote server.",
+    "permissions": [
+      "activeTab"
+    ],
+    "content_scripts": [
+      {
+        "matches": ["*://*/*"],
+        "js": ["content.js"],
+        "run_at": "document_end"
+      }
+    ]
+  }
+  
