@@ -9,10 +9,11 @@ if (document.querySelector('body.notebook_app')) {
       const activeCell = document.querySelector('.cell.selected .input_area .CodeMirror');
       if (activeCell) {
         // Retrieve the content of the active cell
+        const allCells = document.querySelectorAll('.cell .input_area .CodeMirror');
         const cellContent = getCellContent(activeCell);
-
+        const contextContent = getPreviousCellsContent(activeCell, allCells);
         // Log the cell content to the console
-        console.log(activeCell);
+        console.log(contextContent);
 
         // Suggestion handling
         const suggestion = 'your_suggestion_here'; // Replace with your actual suggestion
@@ -52,4 +53,27 @@ function insertSuggestion(cell, suggestion) {
     const event = new Event('input', { bubbles: true, cancelable: true });
     textarea.dispatchEvent(event);
   }
+}
+
+function getPreviousCellsContent(activeCell, allCells) {
+  const previousCellsContent = [];
+  let codeCellCount = 0;
+
+  for (const cell of allCells) {
+    // Stop when the active cell is reached or when three code cells have been processed
+    if (cell === activeCell) break;
+
+    // Check if the cell is a code cell
+    const isCodeCell = cell.closest('.cell').classList.contains('code_cell');
+    if (isCodeCell) {
+      const cellContent = getCellContent(cell);
+      previousCellsContent.push(cellContent); // Add the content to the end of the array
+      codeCellCount++;
+    }
+  }
+
+  // Reverse the array to have the content in the correct order
+  const lastThreeCellsContent = previousCellsContent.slice(-3);
+
+  return lastThreeCellsContent.join('\n');
 }
