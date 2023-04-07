@@ -14,7 +14,7 @@ async function sendToOpenAI(prompt) {
     }),
   });
   const data = await response.json();
-  return data.choices && data.choices[0] && data.choices[0].message.text;
+  return data.choices && data.choices[0] && data.choices[0].message.content;
 }
 
 async function getCodeCompletion(code) {
@@ -25,7 +25,7 @@ I have the following code:
 ${code}
 \`\`\`
 
-Please provide the missing code to complete the task.
+Please provide the missing code to complete the task. (do not include code that is already present in the prompt)
 `;
 
   return await sendToOpenAI(prompt);
@@ -52,10 +52,20 @@ if (document.querySelector('body.notebook_app')) {
         // Suggestion handling
         // cannot handle async function like this
         getCodeCompletion(code).then((suggestion) => {
-          console.log(suggestion);
-          insertSuggestion(activeCell, suggestion);
-        }
-        );
+          if (suggestion) {
+            console.log("[PROMPT]\n" + code)
+            console.log("[RESPONSE]\n" + suggestion);
+            // Use a regular expression to match the content between triple backticks
+            const codeBlockRegex = /```([\s\S]*?)```/g;
+            const match = codeBlockRegex.exec(suggestion);
+            const extractedCode = match && match[1] ? match[1].trim() : '';
+            insertSuggestion(activeCell, extractedCode);
+          } else {
+            console.log('No suggestion received from the API.');
+          }
+        }).catch((error) => {
+          console.error('Error:', error);
+        });
       }
     }
   });
