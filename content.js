@@ -1,3 +1,36 @@
+const OPENAI_API_KEY = "your_api_key";
+
+// Function to send request to OpenAI API
+async function sendToOpenAI(prompt) {
+  const response = await fetch("https://api.openai.com/v1/chat/completions", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "Authorization": `Bearer ${OPENAI_API_KEY}`,
+    },
+    body: JSON.stringify({
+      model: "gpt-3.5-turbo",
+      messages: [{ role: "user", content: prompt }],
+    }),
+  });
+  const data = await response.json();
+  return data.choices && data.choices[0] && data.choices[0].message.text;
+}
+
+async function getCodeCompletion(code) {
+  const prompt = `
+I have the following code:
+
+\`\`\`
+${code}
+\`\`\`
+
+Please provide the missing code to complete the task.
+`;
+
+  return await sendToOpenAI(prompt);
+}
+
 // Check if the current page is a Jupyter Notebook
 if (document.querySelector('body.notebook_app')) {
   document.addEventListener('keydown', (event) => {
@@ -12,12 +45,17 @@ if (document.querySelector('body.notebook_app')) {
         const allCells = document.querySelectorAll('.cell .input_area .CodeMirror');
         const cellContent = getCellContent(activeCell);
         const contextContent = getPreviousCellsContent(activeCell, allCells);
+        const code = contextContent + '\n' + cellContent;
         // Log the cell content to the console
-        console.log(contextContent);
+        // console.log(code);
 
         // Suggestion handling
-        const suggestion = 'your_suggestion_here'; // Replace with your actual suggestion
-        insertSuggestion(activeCell, suggestion);
+        // cannot handle async function like this
+        getCodeCompletion(code).then((suggestion) => {
+          console.log(suggestion);
+          insertSuggestion(activeCell, suggestion);
+        }
+        );
       }
     }
   });
