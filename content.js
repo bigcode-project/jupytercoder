@@ -1,12 +1,23 @@
-const OPENAI_API_KEY = "your_api_key";
-
+async function getOpenAIKey() {
+  return new Promise((resolve) => {
+    chrome.runtime.sendMessage({ type: "getApiKey" }, (response) => {
+      resolve(response.apiKey);
+    });
+  });
+}
 // Function to send request to OpenAI API
 async function sendToOpenAI(prompt) {
+  const apiKey = await getOpenAIKey();
+  console.log('API Key: ' + apiKey)
+  if (!apiKey) {
+    console.error("OpenAI API key not set.");
+    return;
+  }
   const response = await fetch("https://api.openai.com/v1/chat/completions", {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      "Authorization": `Bearer ${OPENAI_API_KEY}`,
+      "Authorization": `Bearer ${apiKey}`,
     },
     body: JSON.stringify({
       model: "gpt-3.5-turbo",

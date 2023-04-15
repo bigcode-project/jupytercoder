@@ -1,18 +1,24 @@
 {
-    "manifest_version": 3,
-    "name": "Jupyter Data Capture",
-    "version": "1.0",
-    "description": "Capture data in Jupyter Notebook cells and send to a remote server.",
-    "permissions": [
-      "activeTab"
-    ],
-    "content_scripts": [
-      {
-        "matches": ["*://*/*"],
-        "js": ["content.js"],
-        "css": ["styles.css"],
-        "run_at": "document_end"
-      }
-    ]
-  }
-  
+  "manifest_version": 3,
+  "name": "Jupyter Data Capture",
+  "version": "1.0",
+  "description": "Capture data in Jupyter Notebook cells and send to a remote server.",
+  "permissions": [
+    "activeTab",
+    "storage"
+  ],
+  "action": {
+    "default_popup": "options.html"
+  },
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": ["*://*/*"],
+      "js": ["content.js"],
+      "css": ["styles.css"],
+      "run_at": "document_end"
+    }
+  ]
+}
