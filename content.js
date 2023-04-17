@@ -11,7 +11,8 @@ async function sendToOpenAI(prompt) {
   const apiKey = await getOpenAIKey();
   console.log('API Key: ' + apiKey)
   if (!apiKey) {
-    console.error("OpenAI API key not set.");
+    // 总是忘记填写。。所以等了半天总是以为网络错误，改成了alert
+    alert("OpenAI API key not set.");
     return;
   }
   const response = await fetch("https://api.openai.com/v1/chat/completions", {
@@ -24,6 +25,8 @@ async function sendToOpenAI(prompt) {
       model: "gpt-3.5-turbo",
       messages: [{ role: "user", content: prompt }],
     }),
+    // 添加一个最大请求时间，目前没做相关于超时的处理，但如果超时了，就会在请求的单元格展示error
+    timeout: 30000
   });
   const data = await response.json();
   return data.choices && data.choices[0] && data.choices[0].message.content;
@@ -70,7 +73,6 @@ if (document.querySelector('body.notebook_app')) {
       // 从当前输入框的Textarea获取当前输入框（单元格）
       const activeCell = activeTextarea.parentElement.parentElement
 
-   
       if (activeCell) {
         // Retrieve the content of the active cell
         const allCells = document.querySelectorAll('.cell .input_area .CodeMirror');
@@ -130,7 +132,7 @@ const addTabEvent = (event) => {
 document.addEventListener('keydown', addTabEvent)
 
 function insertSuggestion(suggestion) {
-  // 获取焦点，否则无法插入
+  // 获取焦点，否则无法从其他位置按下Tab插入
   requestingTextarea.focus();
 
   // Get the current cursor position

@@ -1,21 +1,125 @@
 <!DOCTYPE html>
 <html>
-  <head>
-    <title>Options</title>
-    <style>
-      label {
-        display: block;
-        margin-bottom: 1rem;
-      }
-    </style>
-  </head>
-  <body>
-    <label>
-      OpenAI API Key:
-      <input type="text" id="apiKey" />
+
+
+<head>
+  <style>
+    .settingContent {
+      width: 290px;
+      height: 100%;
+      background: rgb(17, 190, 167);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      align-content: center;
+      padding: 15px;
+    }
+
+    .input-key{
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      align-content: center;
+      margin-bottom: 10px;
+    }
+
+
+    .input-key div input{
+      margin-top: 5px;
+      margin-bottom: 10px;
+      border: none;
+      height: 25px;
+      width: 200px;
+      font-size: 16px;
+      border-radius: 5px;
+      padding: 3px 5px;
+    }
+
+
+    header {
+      color: white;
+      font-weight: bold;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 0.5rem 0;
+      margin-bottom: 10px;
+    }
+
+    header>span {
+      margin: 0 auto;
+      display: block;
+      font-size: 1.3rem;
+    }
+
+    label {
+      display: block;
+      margin-bottom: 1rem;
+    }
+
+    .radio-label {
+      display: flex;
+      align-items: center;
+      margin-bottom: 10px;
+    }
+
+    .radio-button {
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      border: 2px solid #000;
+      margin-right: 10px;
+      position: relative;
+    }
+
+    .radio-text {
+      font-size: 16px;
+    }
+
+    input[type="radio"] {
+      opacity: 0;
+      position: absolute;
+    }
+
+    input[type="radio"]:checked+.radio-label .radio-button {
+      background-color: #000;
+    }
+
+    #save{
+      width: 80px;
+      height: 40px;
+      border-radius: 15px;
+      font-size: 18px;
+      border: none;
+      margin-top: 10px;
+    }
+  </style>
+</head>
+
+
+<body>
+  <div class="settingContent">
+    <header>
+      <span>Jupyter Coder</span>
+    </header>
+
+    <div class="input-key">
+      <div>OpenAI API Key:</div>
+      <div><input type="text" id="apiKey" /></div>
+    </div>
+
+    <input type="radio" id="option1" name="options" checked>
+    <label for="option1" class="radio-label">
+      <div class="radio-button"></div>
+      <span class="radio-text">OpenAI</span>
     </label>
+
+
     <button id="save">Save</button>
 
-    <script src="options.js"></script>
-  </body>
+  </div>
+
+  <script src="options.js"></script>
+</body>
+
 </html>
