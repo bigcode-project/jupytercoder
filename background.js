@@ -5,5 +5,17 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
       });
       return true; // Required to use sendResponse asynchronously
     }
+    else if (request.type === "getUrl"){
+      chrome.storage.sync.get("otherService", (data) => {
+        sendResponse({ otherServiceUrl: data.otherService });
+      });
+      return true; // Required to use sendResponse asynchronously
+    }
+    else if(request.type === "getChecked"){
+      chrome.storage.sync.get("checked", (data) => {
+        sendResponse({ checked: data.checked });
+      });
+      return true; // Required to use sendResponse asynchronously
+    }
   });
   

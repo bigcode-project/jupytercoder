@@ -23,6 +23,7 @@
       margin-bottom: 10px;
     }
 
+    
 
     .input-key div input{
       margin-top: 5px;
@@ -35,6 +36,9 @@
       padding: 3px 5px;
     }
 
+    .input-hidden {
+      display: none;
+    }
 
     header {
       color: white;
@@ -61,6 +65,8 @@
       display: flex;
       align-items: center;
       margin-bottom: 10px;
+      margin-right: 10px;
+      margin-left: 10px;
     }
 
     .radio-button {
@@ -70,11 +76,18 @@
       border: 2px solid #000;
       margin-right: 10px;
       position: relative;
+
     }
 
     .radio-text {
       font-size: 16px;
     }
+
+    .chooseBtn {
+      display: flex;
+      align-items: center;
+    }
+    
 
     input[type="radio"] {
       opacity: 0;
@@ -102,24 +115,38 @@
     <header>
       <span>Jupyter Coder</span>
     </header>
-
     <div class="input-key">
+      <div>BigCode Url:</div>
+      <div><input type="text" id="otherServiceUrl" /></div>
+    </div>
+
+    <div class="input-key input-hidden">
       <div>OpenAI API Key:</div>
       <div><input type="text" id="apiKey" /></div>
     </div>
 
-    <input type="radio" id="option1" name="options" checked>
-    <label for="option1" class="radio-label">
-      <div class="radio-button"></div>
-      <span class="radio-text">OpenAI</span>
-    </label>
+  
+    <div class="chooseBtn">
 
+      <input type="radio" id="otherService" name="options" checked>
+      <label for="otherService" class="radio-label">
+        <div class="radio-button"></div>
+        <span class="radio-text">BigCode</span>
+      </label>
 
+      <input type="radio" id="openaiApiKey" name="options" >
+      <label for="openaiApiKey" class="radio-label">
+        <div class="radio-button"></div>
+        <span class="radio-text">OpenAI</span>
+      </label>
+    </div>
+    
     <button id="save">Save</button>
 
   </div>
 
   <script src="options.js"></script>
+  
 </body>
 
 </html>
