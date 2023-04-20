@@ -1,8 +1,13 @@
 {
   "manifest_version": 3,
-  "name": "Jupyter Data Capture",
-  "version": "1.0",
+  "name": "Jupyter Coder",
+  "version": "0.0.0.1",
   "description": "Capture data in Jupyter Notebook cells and send to a remote server.",
+  "icons": {
+    "32": "icons/flow_64.png",
+    "48": "icons/flow_128.png",
+    "128": "icons/flow_256.png"
+  },
   "permissions": [
     "activeTab",
     "storage"
