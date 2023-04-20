@@ -63,9 +63,13 @@ async function sendToOtherService(code) {
       "Content-Type": "application/json"
     },
     body: JSON.stringify({
-      inputs: code.replace(/\u200B/g, '')
+      inputs: code.replace(/\u200B/g, ''),
+      parameters: {
+        return_full_text: false
+      }
     })
   })
+  console.log("[prompt]", JSON.stringify(code));
   const data = await response.json();
   if (/^\n/.test(data)) {
     data = data.replace(/^\n/, '');
@@ -173,7 +177,13 @@ if (document.querySelector('body.notebook_app')) {
     });
 
     const cellContent = content.join('\n');
-    return contextContent + '\n' + cellContent;
+    console.log("[context]", JSON.stringify(contextContent))
+    console.log("[cell]", JSON.stringify(cellContent))
+    if (contextContent) {
+      return contextContent + '\n' + cellContent;
+    }
+    return cellContent;
+    // return contextContent + '\n' + cellContent;
   }
 }
 
