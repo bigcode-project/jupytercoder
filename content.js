@@ -57,19 +57,20 @@ async function sendToOtherService(code) {
     alert("otherServiceUrl not set.");
     return;
   }
+  const prompt = "<start_jupyter><jupyter_code>" + code.replace(/\u200B/g, '')
   const response = await fetch(url, {
     method: "POST",
     headers: {
       "Content-Type": "application/json"
     },
     body: JSON.stringify({
-      inputs: code.replace(/\u200B/g, ''),
+      inputs: prompt,
       parameters: {
         return_full_text: false
       }
     })
   })
-  console.log("[prompt]", JSON.stringify(code));
+  console.log("[prompt]", JSON.stringify(prompt));
   const data = await response.json();
   if (/^\n/.test(data)) {
     data = data.replace(/^\n/, '');
@@ -180,7 +181,7 @@ if (document.querySelector('body.notebook_app')) {
     console.log("[context]", JSON.stringify(contextContent))
     console.log("[cell]", JSON.stringify(cellContent))
     if (contextContent) {
-      return contextContent + '\n' + cellContent;
+      return contextContent + "<jupyter_code>" + cellContent;
     }
     return cellContent;
     // return contextContent + '\n' + cellContent;
@@ -255,7 +256,7 @@ function getPreviousCellsContent(activeCell, allCells) {
   // Reverse the array to have the content in the correct order
   const lastThreeCellsContent = previousCellsContent.slice(-3);
 
-  return lastThreeCellsContent.join('\n');
+  return lastThreeCellsContent.join('<jupyter_code>');
 }
 
 
