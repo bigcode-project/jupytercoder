@@ -20,4 +20,4 @@ jupyter notebook
 ```
 
 Open the notebook sklearn_digits.ipynb and try it out.
-Type ctrl+space to trigger the code completion when you are in a code cell.
+Type ctrl+space to trigger the code completion when you are in a code cell, then ctrl to accept it (welcome your thought on the key binding!).
