@@ -8,9 +8,8 @@ Currently it only supports OPENAI code completion.
 git clone this_repo
 ```
 
-change the OPENAI_API_KEY in content.js to your own key.
-
 Open chrome://extensions/ in your browser and enable developer mode. Then click on "Load unpacked" and select the folder where you cloned this repository.
+Then click on the extension icon to enable it, you will need to enter the bigcode model endpoint url.
 
 ## Demo
 
