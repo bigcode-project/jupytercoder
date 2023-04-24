@@ -70,7 +70,6 @@ async function sendToOtherService(code) {
       }
     })
   })
-  console.log("[prompt]", JSON.stringify(prompt));
   const data = await response.json();
   if (/^\n/.test(data)) {
     data = data.replace(/^\n/, '');
@@ -189,7 +188,6 @@ if (document.querySelector('body.notebook_app')) {
       if (activeCell) {
         // Retrieve the content of the active cell 
         const code = getCellContentText(activeCell);
-        console.log("[PROMPT]", code)
 
         // 开始动画
         const [animationInterval, animationElement] = startWaitingAnimation(activeCell)
