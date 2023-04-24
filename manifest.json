@@ -9,7 +9,6 @@
     "128": "icons/flow_256.png"
   },
   "permissions": [
-    "activeTab",
     "storage"
   ],
   "action": {
