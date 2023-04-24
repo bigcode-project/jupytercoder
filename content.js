@@ -79,14 +79,6 @@ async function sendToOtherService(code) {
   return data[0].generated_text;
 }
 
-// 请求完毕后准备填入的代码
-let readyToFillCode = ""
-// 是否正在请求（防止多次请求等问题）
-let isRequtest = false
-// 是否请求成功（防止用户在本次未请求完就按下Tab）
-let isRequtestSuccess = false
-// 请求时的输入框 (提供一边请求一边去别的单元格写代码的功能)
-let requestingTextarea = null
 
 
 async function getCodeCompletion(code) {
@@ -122,6 +114,58 @@ async function getOtherServiceUrlWrapper(code) {
   return await sendToOtherService(code)
 }
 
+// Code to be filled in after request completion
+let codeToFill = "";
+// Flag indicating whether a request is in progress (prevents multiple requests, etc.)
+let isRequestInProgress = false;
+// Flag indicating whether the request was successful (prevents filling in code before the request is complete)
+let isRequestSuccessful = false;
+// Textarea during the request (allows writing code in other cells while the request is in progress)
+let activeRequestTextarea = null;
+
+
+// 添加tab监听器，用户请求完毕后按下tab键填入代码
+const addTabEvent = (event) => {
+  if (event.ctrlKey && !isRequestInProgress && isRequestSuccessful) {
+    event.preventDefault();
+
+    // 获取之前的动画文字Dom（有且只能存在一个或者不存在），如果之前的动画文字框不存在，则在逻辑中认为用户不需要这段代码
+    const animationElementList = document.querySelectorAll(".per-insert-code")
+
+    // 动画文字Dom存在，则在逻辑中认为用户想把这段代码插入到代码块中
+    if(animationElementList.length == 1){
+      insertSuggestion(codeToFill)
+    }
+
+    //关闭请求成功的状态
+    isRequestSuccessful = false
+  }
+}
+
+function insertSuggestion(suggestion) {
+  // 获取焦点，否则无法从其他位置按下Tab插入
+  activeRequestTextarea.focus();
+
+  // Get the current cursor position
+  const cursorPosition = activeRequestTextarea.selectionStart;
+
+  // Insert the suggestion at the cursor position
+  const newValue = activeRequestTextarea.value.slice(0, cursorPosition) + suggestion + activeRequestTextarea.value.slice(cursorPosition);
+  activeRequestTextarea.value = newValue;
+
+  // Update the cursor position after inserting the suggestion
+  const newCursorPosition = cursorPosition + suggestion.length;
+  activeRequestTextarea.selectionStart = activeRequestTextarea.selectionEnd = cursorPosition + suggestion.length;
+
+  // Trigger an input event on the textarea to update the CodeMirror instance
+  const event = new Event('input', { bubbles: true, cancelable: true });
+  activeRequestTextarea.dispatchEvent(event);
+
+  // Trigger a keydown event with Tab key to perform auto-indentation
+  const tabEvent = new KeyboardEvent('keydown', { key: 'Tab' });
+  activeRequestTextarea.dispatchEvent(tabEvent);
+}
+
 // Check if the current page is a Jupyter Notebook
 if (document.querySelector('body.notebook_app')) {
 
@@ -131,14 +175,14 @@ if (document.querySelector('body.notebook_app')) {
       // 防止默认事件
       event.preventDefault();
 
-      if (isRequtest || isRequtestSuccess) {
+      if (isRequestInProgress || isRequestSuccessful) {
         return
       }
 
       // 获取当前输入框的Textarea
       const activeTextarea = document.activeElement;
 
-      requestingTextarea = activeTextarea
+      activeRequestTextarea = activeTextarea
 
       // 从当前输入框的Textarea获取当前输入框（单元格）
       const activeCell = activeTextarea.parentElement.parentElement
@@ -151,13 +195,13 @@ if (document.querySelector('body.notebook_app')) {
         // 开始动画
         const [animationInterval, animationElement] = startWaitingAnimation(activeCell)
 
-        isRequtest = true
+        isRequestInProgress = true
         const suggestion = await getCodeCompletion(code)
         if (suggestion) {
           clearInterval(animationInterval)
-          isRequtestSuccess = true
-          isRequtest = false
-          readyToFillCode = suggestion
+          isRequestSuccessful = true
+          isRequestInProgress = false
+          codeToFill = suggestion
 
           // 将文字动画框的内容替换成code
           animationElement.innerHTML = suggestion
@@ -167,40 +211,39 @@ if (document.querySelector('body.notebook_app')) {
       }
     }
   });
+  document.addEventListener('keydown', addTabEvent);
+}
 
+function getCellContentText(activeCell) {
 
+  const cellElements = Array.from(document.querySelectorAll('.cell'));
+  const activeCellIndex = cellElements.findIndex(cell => cell.contains(activeCell));
+  // Check if there are at least 3 cells before the active cell
 
-  function getCellContentText(activeCell) {
+  let combinedContent = "<start_jupyter>";
 
-    const cellElements = Array.from(document.querySelectorAll('.cell'));
-    const activeCellIndex = cellElements.findIndex(cell => cell.contains(activeCell));
-    // Check if there are at least 3 cells before the active cell
+  // Iterate through the last 3 cells before the active cell
+  const startIndex = activeCellIndex - 3 < 0 ? 0 : activeCellIndex - 3;
+  for (let i = startIndex; i <= activeCellIndex; i++) {
+    const cellElement = cellElements[i];
 
-    let combinedContent = "<start_jupyter>";
-
-    // Iterate through the last 3 cells before the active cell
-    const startIndex = activeCellIndex - 3 < 0 ? 0 : activeCellIndex - 3;
-    for (let i = startIndex; i <= activeCellIndex; i++) {
-      const cellElement = cellElements[i];
-
-      if (cellElement.classList.contains('code_cell')) {
-        const code = extractTextFromCell(cellElement);
-        combinedContent += `<jupyter_code>${code}`;
-        const outputElement = cellElement.querySelector('.output_subarea');
-        if (outputElement) {
-          if (i !== activeCellIndex) {
-            combinedContent += `<jupyter_output>`;
-            combinedContent += outputElement.textContent;
-          }
+    if (cellElement.classList.contains('code_cell')) {
+      const code = extractTextFromCell(cellElement);
+      combinedContent += `<jupyter_code>${code}`;
+      const outputElement = cellElement.querySelector('.output_subarea');
+      if (outputElement) {
+        if (i !== activeCellIndex) {
+          combinedContent += `<jupyter_output>`;
+          combinedContent += outputElement.textContent;
         }
-      } else if (cellElement.classList.contains('text_cell')) {
-        const text = extractTextFromCell(cellElement);
-        combinedContent += `<jupyter_text>${text}`;
       }
+    } else if (cellElement.classList.contains('text_cell')) {
+      const text = extractTextFromCell(cellElement);
+      combinedContent += `<jupyter_text>${text}`;
     }
-
-    return combinedContent;
   }
+
+  return combinedContent;
 }
 
 function extractTextFromCell(cell) {
@@ -213,52 +256,6 @@ function extractTextFromCell(cell) {
 
   return content.join('\n');
 }
-
-// 添加tab监听器，用户请求完毕后按下tab键填入代码
-const addTabEvent = (event) => {
-  if (event.ctrlKey && !isRequtest && isRequtestSuccess) {
-    event.preventDefault();
-
-    // 获取之前的动画文字Dom（有且只能存在一个或者不存在），如果之前的动画文字框不存在，则在逻辑中认为用户不需要这段代码
-    const animationElementList = document.querySelectorAll(".per-insert-code")
-
-    // 动画文字Dom存在，则在逻辑中认为用户想把这段代码插入到代码块中
-    if(animationElementList.length == 1){
-      insertSuggestion(readyToFillCode)
-    }
-
-    //关闭请求成功的状态
-    isRequtestSuccess = false
-  }
-}
-
-
-document.addEventListener('keydown', addTabEvent)
-
-function insertSuggestion(suggestion) {
-  // 获取焦点，否则无法从其他位置按下Tab插入
-  requestingTextarea.focus();
-
-  // Get the current cursor position
-  const cursorPosition = requestingTextarea.selectionStart;
-
-  // Insert the suggestion at the cursor position
-  const newValue = requestingTextarea.value.slice(0, cursorPosition) + suggestion + requestingTextarea.value.slice(cursorPosition);
-  requestingTextarea.value = newValue;
-
-  // Update the cursor position after inserting the suggestion
-  const newCursorPosition = cursorPosition + suggestion.length;
-  requestingTextarea.selectionStart = requestingTextarea.selectionEnd = cursorPosition + suggestion.length;
-
-  // Trigger an input event on the textarea to update the CodeMirror instance
-  const event = new Event('input', { bubbles: true, cancelable: true });
-  requestingTextarea.dispatchEvent(event);
-
-  // Trigger a keydown event with Tab key to perform auto-indentation
-  const tabEvent = new KeyboardEvent('keydown', { key: 'Tab' });
-  requestingTextarea.dispatchEvent(tabEvent);
-}
-
 
 // 开始等待动画，有30s等待时间，如果等待时间过了，出现“error”字体，返回两个值如下，接收："const [animationInterval, animationElement] = startWaitingAnimation(activeCall)"
 // 1. animationInterval（interval, 动画计时器），可使用clearInterval(animationInterval)消除动画, 每次请求完毕必须要关掉
