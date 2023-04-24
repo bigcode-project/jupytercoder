@@ -92,6 +92,7 @@ let requestingTextarea = null
 async function getCodeCompletion(code) {
   const checked = await getChecked();
   // 如果没有选择则弹出框提示
+  return "suggestions";
   if (!checked) {
     alert("The request method is not selected.");
     return;
@@ -144,7 +145,8 @@ if (document.querySelector('body.notebook_app')) {
 
       if (activeCell) {
         // Retrieve the content of the active cell 
-        const code = getCellContent(activeCell);
+        const code = getCellContentText(activeCell);
+        console.log("[PROMPT]", code)
 
         // 开始动画
         const [animationInterval, animationElement] = startWaitingAnimation(activeCell)
@@ -166,28 +168,51 @@ if (document.querySelector('body.notebook_app')) {
     }
   });
 
-  function getCellContent(cell) {
-    const allCells = document.querySelectorAll('.cell .input_area .CodeMirror');
-    const codeMirrorLines = cell.querySelectorAll('.CodeMirror-code pre');
-    const contextContent = getPreviousCellsContent(cell, allCells);
 
-    const content = [];
 
-    codeMirrorLines.forEach((line) => {
-      content.push(line.textContent);
-    });
+  function getCellContentText(activeCell) {
 
-    const cellContent = content.join('\n');
-    console.log("[context]", JSON.stringify(contextContent))
-    console.log("[cell]", JSON.stringify(cellContent))
-    if (contextContent) {
-      return contextContent + "<jupyter_code>" + cellContent;
+    const cellElements = Array.from(document.querySelectorAll('.cell'));
+    const activeCellIndex = cellElements.findIndex(cell => cell.contains(activeCell));
+    // Check if there are at least 3 cells before the active cell
+
+    let combinedContent = "<start_jupyter>";
+
+    // Iterate through the last 3 cells before the active cell
+    const startIndex = activeCellIndex - 3 < 0 ? 0 : activeCellIndex - 3;
+    for (let i = startIndex; i <= activeCellIndex; i++) {
+      const cellElement = cellElements[i];
+
+      if (cellElement.classList.contains('code_cell')) {
+        const code = extractTextFromCell(cellElement);
+        combinedContent += `<jupyter_code>${code}`;
+        const outputElement = cellElement.querySelector('.output_subarea');
+        if (outputElement) {
+          if (i !== activeCellIndex) {
+            combinedContent += `<jupyter_output>`;
+            combinedContent += outputElement.textContent;
+          }
+        }
+      } else if (cellElement.classList.contains('text_cell')) {
+        const text = extractTextFromCell(cellElement);
+        combinedContent += `<jupyter_text>${text}`;
+      }
     }
-    return cellContent;
-    // return contextContent + '\n' + cellContent;
+
+    return combinedContent;
   }
 }
 
+function extractTextFromCell(cell) {
+  const codeMirrorLines = cell.querySelectorAll('.CodeMirror-code pre');
+  const content = [];
+
+  codeMirrorLines.forEach((line) => {
+    content.push(line.textContent);
+  });
+
+  return content.join('\n');
+}
 
 // 添加tab监听器，用户请求完毕后按下tab键填入代码
 const addTabEvent = (event) => {
@@ -233,33 +258,6 @@ function insertSuggestion(suggestion) {
   const tabEvent = new KeyboardEvent('keydown', { key: 'Tab' });
   requestingTextarea.dispatchEvent(tabEvent);
 }
-
-
-
-function getPreviousCellsContent(activeCell, allCells) {
-  const previousCellsContent = [];
-  let codeCellCount = 0;
-
-  for (const cell of allCells) {
-    // Stop when the active cell is reached or when three code cells have been processed
-    if (cell === activeCell) break;
-
-    // Check if the cell is a code cell
-    const isCodeCell = cell.closest('.cell').classList.contains('code_cell');
-    if (isCodeCell) {
-      const cellContent = getCellContent(cell);
-      previousCellsContent.push(cellContent); // Add the content to the end of the array
-      codeCellCount++;
-    }
-  }
-
-  // Reverse the array to have the content in the correct order
-  const lastThreeCellsContent = previousCellsContent.slice(-3);
-
-  return lastThreeCellsContent.join('<jupyter_code>');
-}
-
-
 
 
 // 开始等待动画，有30s等待时间，如果等待时间过了，出现“error”字体，返回两个值如下，接收："const [animationInterval, animationElement] = startWaitingAnimation(activeCall)"
