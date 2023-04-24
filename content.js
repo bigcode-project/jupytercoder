@@ -84,7 +84,6 @@ async function sendToOtherService(code) {
 async function getCodeCompletion(code) {
   const checked = await getChecked();
   // 如果没有选择则弹出框提示
-  return "suggestions";
   if (!checked) {
     alert("The request method is not selected.");
     return;
@@ -123,27 +122,27 @@ let isRequestSuccessful = false;
 // Textarea during the request (allows writing code in other cells while the request is in progress)
 let activeRequestTextarea = null;
 
-
-// 添加tab监听器，用户请求完毕后按下tab键填入代码
-const addTabEvent = (event) => {
+// Adds an event listener for filling in code after the request is completed
+const addFillCodeKeyListener = (event) => {
   if (event.ctrlKey && !isRequestInProgress && isRequestSuccessful) {
     event.preventDefault();
 
-    // 获取之前的动画文字Dom（有且只能存在一个或者不存在），如果之前的动画文字框不存在，则在逻辑中认为用户不需要这段代码
-    const animationElementList = document.querySelectorAll(".per-insert-code")
+    // Get the previously existing animated text element (if any)
+    // If it doesn't exist, it's assumed that the user doesn't need the code
+    const animationElementList = document.querySelectorAll(".per-insert-code");
 
-    // 动画文字Dom存在，则在逻辑中认为用户想把这段代码插入到代码块中
-    if(animationElementList.length == 1){
-      insertSuggestion(codeToFill)
+    // If the animated text element exists, it's assumed that the user wants to insert the code into the code block
+    if (animationElementList.length === 1) {
+      insertSuggestion(codeToFill);
     }
 
-    //关闭请求成功的状态
-    isRequestSuccessful = false
+    // Reset the request successful flag
+    isRequestSuccessful = false;
   }
-}
+};
 
 function insertSuggestion(suggestion) {
-  // 获取焦点，否则无法从其他位置按下Tab插入
+  // Focus the textarea, otherwise, it is not possible to insert the suggestion using the Tab key from another location
   activeRequestTextarea.focus();
 
   // Get the current cursor position
@@ -211,7 +210,7 @@ if (document.querySelector('body.notebook_app')) {
       }
     }
   });
-  document.addEventListener('keydown', addTabEvent);
+  document.addEventListener('keydown', addFillCodeKeyListener);
 }
 
 function getCellContentText(activeCell) {
