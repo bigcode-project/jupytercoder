@@ -1,7 +1,6 @@
 <!DOCTYPE html>
 <html>
 
-
 <head>
   <style>
     .settingContent {
@@ -106,6 +105,54 @@
       border: none;
       margin-top: 10px;
     }
+
+
+/* Select选择器样式 */
+select {
+  margin-top: 5px;
+    margin-bottom: 10px;
+    border: none;
+    height: 35px;
+    width: 210px;
+    font-size: 16px;
+    border-radius: 5px;
+    padding: 3px 5px;
+    line-height: 2;
+}
+
+/* 鼠标悬停样式 */
+select:hover {
+  border-color: #999;
+}
+
+/* 选中样式 */
+select:focus {
+  outline: none;
+  border-color: #0099ff;
+}
+
+/* 下拉箭头图标 */
+select::-ms-expand {
+  display: none;
+}
+
+select::before {
+  content: '\f107';
+  font-family: FontAwesome;
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #999;
+  pointer-events: none;
+}
+
+/* 禁用状态样式 */
+select[disabled] {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
   </style>
 </head>
 
@@ -123,6 +170,13 @@
     <div class="input-key input-hidden">
       <div>OpenAI API Key:</div>
       <div><input type="text" id="apiKey" /></div>
+      
+      <select id="select" name="select">
+        <option value="text-davinci-003">text-davinci-003</option>
+        <option value="text-davinci-002">text-davinci-002</option>
+        <option value="text-curie-001">text-curie-001</option>
+      </select>
+
     </div>
 
   
@@ -134,7 +188,7 @@
         <span class="radio-text">BigCode</span>
       </label>
 
-      <input type="radio" id="openaiApiKey" name="options" >
+      <input type="radio" id="openaiApiKey" name="options">
       <label for="openaiApiKey" class="radio-label">
         <div class="radio-button"></div>
         <span class="radio-text">OpenAI</span>

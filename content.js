@@ -19,6 +19,13 @@ async function getChecked() {
     });
   });
 }
+async function getmodelType() {
+  return new Promise((resolve) => {
+    chrome.runtime.sendMessage({ type: "getmodelType" }, (response) => {
+      resolve(response.modelType);
+    });
+  });
+}
 
 // Use a regular expression to match the content between triple backticks
 const codeBlockRegex = /```([\s\S]*)```/;
@@ -27,12 +34,15 @@ const codeHalfBlockRegex = /```([\s\S]*)/;
 // Function to send request to OpenAI API
 async function sendToOpenAI(prompt) {
   const apiKey = await getOpenAIKey();
+  const modelType = await getmodelType();
   if (!apiKey) {
     // 总是忘记填写。。所以等了半天总是以为网络错误，改成了alert
     alert("OpenAI API key not set."); 
     return;
+  }else if(!modelType) {
+    alert("modelType not set."); 
+    return;
   }
-
   const response = await fetch("https://api.openai.com/v1/completions", {
     method: "POST",
     headers: {
@@ -40,7 +50,7 @@ async function sendToOpenAI(prompt) {
       "Authorization": `Bearer ${apiKey}`,
     },
     body: JSON.stringify({
-      model: "text-davinci-003",
+      model: modelType,
       prompt,
       temperature: 0.1,
       max_tokens: 40,
@@ -52,6 +62,8 @@ async function sendToOpenAI(prompt) {
   const data = await response.json();
   const suggestion = data.choices && data.choices[0] && data.choices[0].text;
   
+
+  // don't know how many "```" exists, It is related to the token and also related to the model
   let count = (suggestion.match(/```/g) || []).length;
   let code = ""
   switch(count){
@@ -65,7 +77,7 @@ async function sendToOpenAI(prompt) {
       break;
     default:code = suggestion;
   }
-  console.log("code",code);
+
   return code
 }
 
@@ -186,9 +198,6 @@ const getActiveCellPointerCode = (activeCell) => {
     // code dom element length in active line
     const codeElementWdth = linesElement[lineIndex].querySelector("span").offsetWidth
 
-    console.log("cursorOffsetLeft",cursorOffsetLeft);
-    console.log("codeElementWdth",codeElementWdth);
-
     // Determine whether the pointer is at the end of a line, Because there is a left marring, so -4, but due to precision issues so -3
     if(cursorOffsetLeft - 3 < codeElementWdth){
         return [null, null]
@@ -223,7 +232,6 @@ function getCellContentText(activeCell) {
     return null
   }
 
-
   // Iterate through the last 3 cells before the active cell
   const startIndex = activeCellIndex - 3 < 0 ? 0 : activeCellIndex - 3;
   for (let i = startIndex; i <= activeCellIndex; i++) {
@@ -246,7 +254,7 @@ function getCellContentText(activeCell) {
 
   }
 
-  console.log("combinedContent",combinedContent);
+  console.log("combinedContent", combinedContent);
   return combinedContent;
 }
 
@@ -283,7 +291,14 @@ const startWaitingAnimation = (activeCell) => {
   animationElement.classList.add("per-insert-code")
   animationElement.style.color = 'grey';
 
-  currectLineSpanList[currectLineSpanList.length-1].insertAdjacentElement('afterend', animationElement);
+  // If it is a blank line
+  if(currectLineSpanList.length == 0){
+    const withAllCodeSpan = linesElement[lineIndex].querySelectorAll('span')
+    withAllCodeSpan[withAllCodeSpan.length-1].appendChild(animationElement)
+  }else{
+    currectLineSpanList[currectLineSpanList.length-1].insertAdjacentElement('afterend', animationElement);
+  }
+  
 
   // Waiting steps, 0.333 seconds per step
   let timeLeft = 90;
@@ -371,7 +386,7 @@ if (document.querySelector('body.notebook_app')) {
 
         isRequestInProgress = true
         const suggestion = await getCodeCompletion(code)
-        console.log("suggestion",suggestion + "---");
+
         if (suggestion) {
           clearInterval(animationInterval)
           isRequestSuccessful = true
