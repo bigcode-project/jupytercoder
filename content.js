@@ -20,6 +20,10 @@ async function getChecked() {
   });
 }
 
+// Use a regular expression to match the content between triple backticks
+const codeBlockRegex = /```([\s\S]*)```/;
+const codeHalfBlockRegex = /```([\s\S]*)/;
+
 // Function to send request to OpenAI API
 async function sendToOpenAI(prompt) {
   const apiKey = await getOpenAIKey();
@@ -28,26 +32,41 @@ async function sendToOpenAI(prompt) {
     alert("OpenAI API key not set."); 
     return;
   }
-  const response = await fetch("https://api.openai.com/v1/chat/completions", {
+
+  const response = await fetch("https://api.openai.com/v1/completions", {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
       "Authorization": `Bearer ${apiKey}`,
     },
     body: JSON.stringify({
-      model: "gpt-3.5-turbo",
-      messages: [{ role: "user", content: prompt }],
+      model: "text-davinci-003",
+      prompt,
+      temperature: 0.1,
+      max_tokens: 40,
     }),
     // 添加一个最大请求时间，目前没做相关于超时的处理，但如果超时了，就会在请求的单元格展示error
     timeout: 30000
-
   });
+
   const data = await response.json();
-  const suggestion = data.choices && data.choices[0] && data.choices[0].message.content;
-  // Use a regular expression to match the content between triple backticks
-  const codeBlockRegex = /```([\s\S]*?)```/g;
-  const match = codeBlockRegex.exec(suggestion);
-  return match && match[1] ? match[1].replace(/\u200B/g, '') : '';
+  const suggestion = data.choices && data.choices[0] && data.choices[0].text;
+  
+  let count = (suggestion.match(/```/g) || []).length;
+  let code = ""
+  switch(count){
+    case 1: 
+      var match = suggestion.match(codeHalfBlockRegex)
+      code = match && match[1] ? match[1].replace(/^\n\s*/, '').replace(/\n.*$/, '').replace(/\u200B/g, ''):""
+      break;
+    case 2:
+      var match = suggestion.match(codeBlockRegex)
+      code = match && match[1] ? match[1].replace(/^\n\s*/, '').replace(/\n.*$/, '').replace(/\u200B/g, ''):""
+      break;
+    default:code = suggestion;
+  }
+  console.log("code",code);
+  return code
 }
 
 async function sendToOtherService(code) {
@@ -154,35 +173,29 @@ const getActiveCellPointerCode = (activeCell) => {
 
     // get cursor element
     const cursorElement = activeCell.querySelector('div.CodeMirror-cursor')
+
     const style = window.getComputedStyle(cursorElement);
 
-    // Offset to the left of the pointer position
-    const cursorOffsetLeft = parseFloat(style.getPropertyValue('left'))
+    // 指针所在位置的偏移量
+    const cursorOffsetLeft = Math.round(parseFloat(style.getPropertyValue('left')))
+
     // Which line
-    const lineIndex = parseFloat(style.getPropertyValue('top')) / 17
+    const lineIndex = Math.round(parseFloat(style.getPropertyValue('top')) / 17)
     // Obtain element for all line
     const linesElement = activeCell.getElementsByClassName('CodeMirror-line')
-    // Code to obtain pointer position
-    const spanElement = linesElement[lineIndex].querySelector('span span');
-    // Get the offset to the left of the span element => equal to 4, +7 is the length of a font
-    let charOffsetLeft = spanElement.offsetLeft + 7;
+    // code dom element length in active line
+    const codeElementWdth = linesElement[lineIndex].querySelector("span").offsetWidth
+
+    console.log("cursorOffsetLeft",cursorOffsetLeft);
+    console.log("codeElementWdth",codeElementWdth);
+
+    // Determine whether the pointer is at the end of a line, Because there is a left marring, so -4, but due to precision issues so -3
+    if(cursorOffsetLeft - 3 < codeElementWdth){
+        return [null, null]
+    }
 
     for (let i = 0; i < linesElement.length; i++) {
-      // If i equals the current number of rows, it indicates that the current row needs to be split
-      if (i == lineIndex) {
-        // Obtain text information for the current line
-        let textContent = linesElement[i].textContent
-        for (let j = 0; j < textContent.length; j++) {
-          var char = textContent.charAt(j); // 获取当前字符
-          if (charOffsetLeft < cursorOffsetLeft) {
-            leftContext += char
-          }else {
-            rightContext += char
-          }
-          charOffsetLeft += 7; // Each character is separated by 7 pixels, and the offset is updated
-        }
-      }
-      else if(i < lineIndex) {
+      if(i <= lineIndex) {
         leftContext += linesElement[i].textContent + "\n"
       }else {
         rightContext += linesElement[i].textContent  + "\n"
@@ -202,9 +215,14 @@ function getCellContentText(activeCell) {
   // Check if there are at least 3 cells before the active cell
 
   let combinedContent = "<start_jupyter>";
-  
-  // LeftContext refers to the left side of the pointer, and vice versa
+
+  // LeftContext refers to the left side of the pointer, and vice versa, If both are null, it is determined that the pointer is not at the far right
   const [leftContext, rightContext] = getActiveCellPointerCode(activeCell)
+
+  if(!leftContext && !rightContext){
+    return null
+  }
+
 
   // Iterate through the last 3 cells before the active cell
   const startIndex = activeCellIndex - 3 < 0 ? 0 : activeCellIndex - 3;
@@ -243,13 +261,21 @@ function extractTextFromCell(cell) {
   return content.join('\n');
 }
 
+
+
 // 开始等待动画，有30s等待时间，如果等待时间过了，出现“error”字体，返回两个值如下，接收："const [animationInterval, animationElement] = startWaitingAnimation(activeCall)"
 // 1. animationInterval（interval, 动画计时器），可使用clearInterval(animationInterval)消除动画, 每次请求完毕必须要关掉
 // 2. animationElement (dom, 动画字体节点)， animationElement.innerHTML = xxx 来赋值
-const startWaitingAnimation = (activeCall) => {
-  const activeCell = activeCall.querySelectorAll('.CodeMirror-scroll .CodeMirror-code');
+const startWaitingAnimation = (activeCell) => {
 
-  const lastElement = activeCell[activeCell.length - 1].querySelector('.CodeMirror-line:last-child');
+  // get cursor element
+  const cursorElement = activeCell.querySelector('div.CodeMirror-cursor')
+  const style = window.getComputedStyle(cursorElement);
+  // Which line
+  const lineIndex = Math.round(parseFloat(style.getPropertyValue('top')) / 17)
+  // Obtain element for all line
+  const linesElement = activeCell.getElementsByClassName('CodeMirror-line')
+  const currectLineSpanList = linesElement[lineIndex].querySelectorAll('span span')
 
   // Set the animated font dom element when it waits
   const animationElement = document.createElement('span');
@@ -257,7 +283,7 @@ const startWaitingAnimation = (activeCall) => {
   animationElement.classList.add("per-insert-code")
   animationElement.style.color = 'grey';
 
-  lastElement.appendChild(animationElement);
+  currectLineSpanList[currectLineSpanList.length-1].insertAdjacentElement('afterend', animationElement);
 
   // Waiting steps, 0.333 seconds per step
   let timeLeft = 90;
@@ -301,6 +327,9 @@ const addFillCodeKeyListener = (event) => {
 
     // If the animated text element exists, it's assumed that the user wants to insert the code into the code block
     if (animationElementList.length === 1) {
+      // delete animation element
+      animationElementList[0].remove()
+
       insertSuggestion(codeToFill);
     }
 
@@ -330,16 +359,19 @@ if (document.querySelector('body.notebook_app')) {
 
       // Obtain the current input box (cell) from the Textarea of the current input box
       const activeCell = activeTextarea.parentElement.parentElement
-      
-      if (activeCell) {
-        // Retrieve the content of the active cell 
-        const code = getCellContentText(activeCell);
 
+      // Retrieve the content of the active cell 
+      const code = getCellContentText(activeCell);
+      
+      if (!code) return;
+
+      if (activeCell) {
         // Start Animation
         const [animationInterval, animationElement] = startWaitingAnimation(activeCell)
 
         isRequestInProgress = true
         const suggestion = await getCodeCompletion(code)
+        console.log("suggestion",suggestion + "---");
         if (suggestion) {
           clearInterval(animationInterval)
           isRequestSuccessful = true
