@@ -211,8 +211,6 @@ const getActiveCellPointerCode = (activeCell) => {
       }
     }
 
-    console.log("leftContext:", leftContext)
-    console.log("rightContext:", rightContext)
     return [leftContext, rightContext]
 }
 
@@ -254,7 +252,6 @@ function getCellContentText(activeCell) {
 
   }
 
-  console.log("combinedContent", combinedContent);
   return combinedContent;
 }
 
