@@ -17,5 +17,11 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
       });
       return true; // Required to use sendResponse asynchronously
     }
+    else if(request.type === "getmodelType"){
+      chrome.storage.sync.get("modelType", (data) => {
+        sendResponse({ modelType: data.modelType });
+      });
+      return true; // Required to use sendResponse asynchronously
+    }
   });
   

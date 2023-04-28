@@ -1,5 +1,6 @@
 // 获取所有的单选框
 const radioButtons = document.querySelectorAll('input[type="radio"]');
+const select = document.querySelector('select');
 
 // 获取当前被选中的单选框的值
 function getSelectedRadioValue() {
@@ -20,6 +21,7 @@ document.getElementById("save").addEventListener("click", () => {
   chrome.storage.sync.set({
     openaiApiKey: document.getElementById("apiKey").value,
     otherService: document.getElementById("otherServiceUrl").value,
+    modelType: select.value,
     checked: getSelectedRadioValue()
   }, () => {
     alert("API key saved.");
@@ -38,6 +40,30 @@ chrome.storage.sync.get("otherService", (data) => {
   }
 });
 
+chrome.storage.sync.get("modelType", (data) => {
+  if (data.modelType) {
+    select.value = data.modelType
+  }
+})
+
+chrome.storage.sync.get("checked", (data) => {
+  if (data.checked && data.checked == "openaiApiKey") {
+    document.getElementsByClassName('input-key')[0].classList.toggle("input-hidden")
+    document.getElementsByClassName('input-key')[1].classList.toggle("input-hidden")
+    var optionsElement = document.getElementsByName('options')
+    if(optionsElement[0].checked){
+      optionsElement[0].checked = false
+    }else{
+      optionsElement[0].checked = true
+    }
+    if(optionsElement[1].checked){
+      optionsElement[1].checked = false
+    }else{
+      optionsElement[1].checked = true
+    }
+  }
+})
+
 // 为每个单选框添加事件监听器
 radioButtons.forEach(radioButton => {
   radioButton.addEventListener('change', function (event) {
@@ -47,3 +73,5 @@ radioButtons.forEach(radioButton => {
     }
   });
 });
+
+
