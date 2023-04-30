@@ -21,6 +21,7 @@ document.getElementById("save").addEventListener("click", () => {
   chrome.storage.sync.set({
     openaiApiKey: document.getElementById("apiKey").value,
     otherService: document.getElementById("otherServiceUrl").value,
+    huggingfaceApiKey: document.getElementById("huggingfaceApiKey").value,
     modelType: select.value,
     checked: getSelectedRadioValue()
   }, () => {
@@ -31,6 +32,12 @@ document.getElementById("save").addEventListener("click", () => {
 chrome.storage.sync.get("openaiApiKey", (data) => {
   if (data.openaiApiKey) {
     document.getElementById("apiKey").value = data.openaiApiKey;
+  }
+});
+
+chrome.storage.sync.get("huggingfaceApiKey", (data) => {
+  if (data.huggingfaceApiKey) {
+    document.getElementById("huggingfaceApiKey").value = data.huggingfaceApiKey;
   }
 });
 
