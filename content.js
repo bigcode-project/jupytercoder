@@ -21,7 +21,7 @@ async function getChecked() {
 }
 async function getmodelType() {
   return new Promise((resolve) => {
-    chrome.runtime.sendMessage({ type: "getmodelType" }, (response) => {
+    chrome.runtime.sendMessage({ type: "getModelType" }, (response) => {
       resolve(response.modelType);
     });
   });
