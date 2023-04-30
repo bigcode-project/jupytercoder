@@ -21,7 +21,7 @@ async function getChecked() {
 }
 async function getmodelType() {
   return new Promise((resolve) => {
-    chrome.runtime.sendMessage({ type: "getModelType" }, (response) => {
+    chrome.runtime.sendMessage({ type: "getmodelType" }, (response) => {
       resolve(response.modelType);
     });
   });
@@ -34,6 +34,7 @@ async function getHuggingfaceApiKey() {
   })
 }
 
+
 // Use a regular expression to match the content between triple backticks
 const codeBlockRegex = /```([\s\S]*)```/;
 const codeHalfBlockRegex = /```([\s\S]*)/;
@@ -44,10 +45,10 @@ async function sendToOpenAI(prompt) {
   const modelType = await getmodelType();
   if (!apiKey) {
     // 总是忘记填写。。所以等了半天总是以为网络错误，改成了alert
-    alert("OpenAI API key not set.");
+    alert("OpenAI API key not set."); 
     return;
-  } else if (!modelType) {
-    alert("modelType not set.");
+  }else if(!modelType) {
+    alert("modelType not set."); 
     return;
   }
   const response = await fetch("https://api.openai.com/v1/completions", {
@@ -68,21 +69,21 @@ async function sendToOpenAI(prompt) {
 
   const data = await response.json();
   const suggestion = data.choices && data.choices[0] && data.choices[0].text;
-
+  
 
   // don't know how many "```" exists, It is related to the token and also related to the model
   let count = (suggestion.match(/```/g) || []).length;
   let code = ""
-  switch (count) {
-    case 1:
+  switch(count){
+    case 1: 
       var match = suggestion.match(codeHalfBlockRegex)
-      code = match && match[1] ? match[1].replace(/^\n\s*/, '').replace(/\n.*$/, '').replace(/\u200B/g, '') : ""
+      code = match && match[1] ? match[1].replace(/^\n\s*/, '').replace(/\n.*$/, '').replace(/\u200B/g, ''):""
       break;
     case 2:
       var match = suggestion.match(codeBlockRegex)
-      code = match && match[1] ? match[1].replace(/^\n\s*/, '').replace(/\n.*$/, '').replace(/\u200B/g, '') : ""
+      code = match && match[1] ? match[1].replace(/^\n\s*/, '').replace(/\n.*$/, '').replace(/\u200B/g, ''):""
       break;
-    default: code = suggestion;
+    default:code = suggestion;
   }
 
   return code
@@ -118,7 +119,6 @@ async function sendToOtherService(code) {
   // 格式处理成可以输出到notebook的字符串
   return data[0].generated_text;
 }
-
 
 
 async function getCodeCompletion(code) {
@@ -162,14 +162,11 @@ let isRequestSuccessful = false;
 // Textarea during the request (allows writing code in other cells while the request is in progress)
 let activeRequestTextarea = null;
 
-let activeAnimationElement = null;
-
-let userInputIndex = 0
 
 function insertSuggestion(suggestion) {
   // Focus the textarea, otherwise, it is not possible to insert the suggestion using the Tab key from another location
   activeRequestTextarea.focus();
-  
+
   // Get the current cursor position
   const cursorPosition = activeRequestTextarea.selectionStart;
 
@@ -188,45 +185,43 @@ function insertSuggestion(suggestion) {
   // Trigger a keydown event with Tab key to perform auto-indentation
   const tabEvent = new KeyboardEvent('keydown', { key: 'Tab' });
   activeRequestTextarea.dispatchEvent(tabEvent);
-  codeToFill = ""
-  userInputIndex = 0
 }
 
 
 
 const getActiveCellPointerCode = (activeCell) => {
-  let leftContext = ""
-  let rightContext = ""
+    let leftContext = ""
+    let rightContext = ""
 
-  // get cursor element
-  const cursorElement = activeCell.querySelector('div.CodeMirror-cursor')
+    // get cursor element
+    const cursorElement = activeCell.querySelector('div.CodeMirror-cursor')
 
-  const style = window.getComputedStyle(cursorElement);
+    const style = window.getComputedStyle(cursorElement);
 
-  // 指针所在位置的偏移量
-  const cursorOffsetLeft = Math.round(parseFloat(style.getPropertyValue('left')))
+    // 指针所在位置的偏移量
+    const cursorOffsetLeft = Math.round(parseFloat(style.getPropertyValue('left')))
 
-  // Which line
-  const lineIndex = Math.round(parseFloat(style.getPropertyValue('top')) / 17)
-  // Obtain element for all line
-  const linesElement = activeCell.getElementsByClassName('CodeMirror-line')
-  // code dom element length in active line
-  const codeElementWdth = linesElement[lineIndex].querySelector("span").offsetWidth
+    // Which line
+    const lineIndex = Math.round(parseFloat(style.getPropertyValue('top')) / 17)
+    // Obtain element for all line
+    const linesElement = activeCell.getElementsByClassName('CodeMirror-line')
+    // code dom element length in active line
+    const codeElementWdth = linesElement[lineIndex].querySelector("span").offsetWidth
 
-  // Determine whether the pointer is at the end of a line, Because there is a left marring, so -4, but due to precision issues so -3
-  if (cursorOffsetLeft - 3 < codeElementWdth) {
-    return [null, null]
-  }
-
-  for (let i = 0; i < linesElement.length; i++) {
-    if (i <= lineIndex) {
-      leftContext += linesElement[i].textContent + "\n"
-    } else {
-      rightContext += linesElement[i].textContent + "\n"
+    // Determine whether the pointer is at the end of a line, Because there is a left marring, so -4, but due to precision issues so -3
+    if(cursorOffsetLeft - 3 < codeElementWdth){
+        return [null, null]
     }
-  }
 
-  return [leftContext, rightContext]
+    for (let i = 0; i < linesElement.length; i++) {
+      if(i <= lineIndex) {
+        leftContext += linesElement[i].textContent + "\n"
+      }else {
+        rightContext += linesElement[i].textContent  + "\n"
+      }
+    }
+
+    return [leftContext, rightContext]
 }
 
 
@@ -241,7 +236,7 @@ function getCellContentText(activeCell) {
   // LeftContext refers to the left side of the pointer, and vice versa, If both are null, it is determined that the pointer is not at the far right
   const [leftContext, rightContext] = getActiveCellPointerCode(activeCell)
 
-  if (!leftContext && !rightContext) {
+  if(!leftContext && !rightContext){
     return null
   }
 
@@ -282,11 +277,12 @@ function extractTextFromCell(cell) {
 }
 
 
-// Mount code hints elements
-function mountAnimationElement(code) {
-  const activeTextarea = document.activeElement;
-  // Obtain the current input box (cell) from the Textarea of the current input box
-  const activeCell = activeTextarea.parentElement.parentElement
+
+// 开始等待动画，有30s等待时间，如果等待时间过了，出现“error”字体，返回两个值如下，接收："const [animationInterval, animationElement] = startWaitingAnimation(activeCall)"
+// 1. animationInterval（interval, 动画计时器），可使用clearInterval(animationInterval)消除动画, 每次请求完毕必须要关掉
+// 2. animationElement (dom, 动画字体节点)， animationElement.innerHTML = xxx 来赋值
+const startWaitingAnimation = (activeCell) => {
+
   // get cursor element
   const cursorElement = activeCell.querySelector('div.CodeMirror-cursor')
   const style = window.getComputedStyle(cursorElement);
@@ -298,111 +294,47 @@ function mountAnimationElement(code) {
 
   // Set the animated font dom element when it waits
   const animationElement = document.createElement('span');
-  animationElement.innerHTML = code;
-  animationElement.classList.add("per-insert-code");
-  animationElement.style.color = 'grey';
-
-  // If it is a blank line
-  if (currectLineSpanList.length == 0) {
-    const withAllCodeSpan = linesElement[lineIndex].querySelectorAll('span')
-    withAllCodeSpan[withAllCodeSpan.length - 1].appendChild(animationElement)
-  } else {
-    currectLineSpanList[currectLineSpanList.length - 1].insertAdjacentElement('afterend', animationElement);
-  }
-
-}
-
-// 开始等待动画，有30s等待时间，如果等待时间过了，出现“error”字体，返回两个值如下，接收："const [animationInterval, animationElement] = startWaitingAnimation(activeCall)"
-// 1. animationInterval（interval, 动画计时器），可使用clearInterval(animationInterval)消除动画, 每次请求完毕必须要关掉
-// 2. animationElement (dom, 动画字体节点)， animationElement.innerHTML = xxx 来赋值
-const startWaitingAnimation = (activeCell) => {
-  const inputElement = activeCell.parentElement.parentElement.parentElement;
-  // left animation css
-  var loadCss = `
-    .before-content:before {
-      content: "";
-      position: absolute;
-      top: 5px;
-      left: 10px;
-      right: 0;
-      bottom: 0;
-      border: 3px solid rgba(0, 0, 0, 0.1);
-      border-left-color: #000;
-      border-radius: 50%;
-      width: 20px;
-      height: 20px;
-      animation: spin 1s linear infinite;    
-    }
-
-    @keyframes spin {
-      to {
-        transform: rotate(360deg);
-      }
-    }
-    .paused:before {
-      content: "";
-      position: absolute;
-      top: 5px;
-      left: 10px;
-      right: 0;
-      bottom: 0;
-      border: 3px solid rgba(0, 0, 0, 0.1);
-      border-radius: 50%;
-      width: 20px;
-      height: 20px;
-      // animation: spin 1s linear infinite; 
-      border-left-color: red;
-    }
-  `;
-  // 创建新的<style>元素并将CSS样式添加到其中
-  var styleElement = document.createElement('style');
-  styleElement.textContent = loadCss;
-
-  // 将新的<style>元素添加到<head>元素中
-  document.head.appendChild(styleElement);
-
-  // get cursor element
-  const cursorElement = activeCell.querySelector('div.CodeMirror-cursor')
-  const style = window.getComputedStyle(cursorElement);
-  // Which line
-  const lineIndex = Math.round(parseFloat(style.getPropertyValue('top')) / 17)
-  // Obtain element for all line
-  const linesElement = activeCell.getElementsByClassName('CodeMirror-line')
-  // the code span elements for this active line
-  const currectLineSpanList = linesElement[lineIndex].querySelectorAll('span span')
-
-  // deprecate：Set the animated font dom element when it waits 
-  // As a code hint carrier
-  const animationElement = document.createElement('span');
 
   animationElement.classList.add("per-insert-code")
   animationElement.style.color = 'grey';
 
-  // Insert gray code hints, If the active line has no span tag
-  if (currectLineSpanList.length == 0) {
+  // If it is a blank line
+  if(currectLineSpanList.length == 0){
     const withAllCodeSpan = linesElement[lineIndex].querySelectorAll('span')
-    // creates an element in a unique code carrier, as long as the mouse exists, the code carrier exists
-    withAllCodeSpan[withAllCodeSpan.length - 1].appendChild(animationElement)
-  } else {
-    // Insert new hint code in the last code span
-    const withAllCodeSpan = linesElement[lineIndex].childNodes
-    withAllCodeSpan[withAllCodeSpan.length - 1].insertAdjacentElement('afterend', animationElement);
+    withAllCodeSpan[withAllCodeSpan.length-1].appendChild(animationElement)
+  }else{
+    currectLineSpanList[currectLineSpanList.length-1].insertAdjacentElement('afterend', animationElement);
   }
-
+  
 
   // Waiting steps, 0.333 seconds per step
   let timeLeft = 90;
   const animationInterval = setInterval(() => {
-    // Add request animation
-    inputElement.classList.add('before-content');
-    // If the request exceeds 30s
-    if (timeLeft-- <= 0) {
-      inputElement.classList.remove('before-content');
+    let animatedText = ''
+
+    let remainder = timeLeft % 3;
+    switch (remainder) {
+      case 2:
+        animatedText = '.    ';
+        break;
+      case 1:
+        animatedText = '..   ';
+        break;
+      default:
+        animatedText = '...  ';
+        break;
+    }
+
+    animationElement.innerHTML = ' ' + animatedText + " time left: " + Math.floor(timeLeft-- / 3) + "s"
+
+    // request timeout
+    if (timeLeft <= 0) {
+      animationElement.innerHTML = "error"
       clearInterval(animationInterval)
     }
 
   }, 333)
-  return [animationInterval, animationElement, inputElement]
+  return [animationInterval, animationElement]
 }
 
 
@@ -410,7 +342,6 @@ const startWaitingAnimation = (activeCell) => {
 const addFillCodeKeyListener = (event) => {
   if (event.ctrlKey && !isRequestInProgress && isRequestSuccessful) {
     event.preventDefault();
-    event.stopPropagation();
 
     // Get the previously existing animated text element (if any)
     // If it doesn't exist, it's assumed that the user doesn't need the code
@@ -418,13 +349,10 @@ const addFillCodeKeyListener = (event) => {
 
     // If the animated text element exists, it's assumed that the user wants to insert the code into the code block
     if (animationElementList.length === 1) {
-
       // delete animation element
       animationElementList[0].remove()
 
-      // Set a new timeout for 2 seconds
       insertSuggestion(codeToFill);
-
     }
 
     // Reset the request successful flag
@@ -432,92 +360,52 @@ const addFillCodeKeyListener = (event) => {
   }
 };
 
-async function process() {
-  if (isRequestInProgress || isRequestSuccessful) {
-    isRequestInProgress = false
-    return
-  }
-  //Obtain the Textarea of the current input box
-  const activeTextarea = document.activeElement;
-
-  activeRequestTextarea = activeTextarea
-  // Obtain the current input box (cell) from the Textarea of the current input box
-  const activeCell = activeTextarea.parentElement.parentElement
-  // Retrieve the content of the active cell 
-  const code = getCellContentText(activeCell);
-
-  if (!code) return;
-
-  if (activeCell) {
-    // Start Animation
-    const [animationInterval, animationElement, inputElement] = startWaitingAnimation(activeCell)
-    activeAnimationElement = animationElement
-    isRequestInProgress = true
-    let suggestion;
-
-    // catch network errors
-    try {
-      suggestion = await getCodeCompletion(code)
-    } catch {
-      // cancel animation
-      clearInterval(animationInterval)
-      // cancel animation element
-      inputElement.classList.remove('before-content')
-      // Add error animation
-      inputElement.classList.add('paused')
-      // The request is forbidden within 5s, and the animation lasts for 5s
-      const pausedTimeOut = setTimeout(() => {
-        inputElement.classList.remove('paused')
-        clearTimeout(pausedTimeOut)
-        isRequestInProgress = false
-        isRequestSuccessful = false
-      }, 5000)
-      return
-    }
-
-    if (suggestion) {
-      // cancel animation
-      clearInterval(animationInterval)
-      // cancel animation element
-      inputElement.classList.remove('before-content')
-      
-
-      isRequestSuccessful = true
-      isRequestInProgress = false
-      codeToFill = suggestion
-
-      // Replace the content of the text animation box with code
-      animationElement.innerHTML = suggestion
-    }
-  }
-}
-
 
 // Check if the current page is a Jupyter Notebook
 if (document.querySelector('body.notebook_app')) {
-
+  
   document.addEventListener('keydown', async (event) => {
     // Check if the Ctrl + Space keys were pressed
     if (event.ctrlKey && event.code === 'Space') {
-
-      if (document.querySelectorAll(".per-insert-code").length == 0) {
-        isRequestSuccessful = false
-      }
-
       // Block default events
       event.preventDefault();
 
-      // If the request is being made or the request is successful
       if (isRequestInProgress || isRequestSuccessful) {
         return
       }
 
-      await process()
+      //Obtain the Textarea of the current input box
+      const activeTextarea = document.activeElement;
+
+      activeRequestTextarea = activeTextarea
+
+      // Obtain the current input box (cell) from the Textarea of the current input box
+      const activeCell = activeTextarea.parentElement.parentElement
+
+      // Retrieve the content of the active cell 
+      const code = getCellContentText(activeCell);
+      
+      if (!code) return;
+
+      if (activeCell) {
+        // Start Animation
+        const [animationInterval, animationElement] = startWaitingAnimation(activeCell)
+
+        isRequestInProgress = true
+        const suggestion = await getCodeCompletion(code)
+
+        if (suggestion) {
+          clearInterval(animationInterval)
+          isRequestSuccessful = true
+          isRequestInProgress = false
+          codeToFill = suggestion
+
+          // Replace the content of the text animation box with code
+          animationElement.innerHTML = suggestion
+        }
+
+      }
     }
-
-
   });
   document.addEventListener('keydown', addFillCodeKeyListener);
-
 }
-
