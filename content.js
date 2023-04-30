@@ -84,7 +84,7 @@ async function sendToOpenAI(prompt) {
       break;
     default: code = suggestion;
   }
-  console.log("code", code)
+
   return code
 }
 
@@ -169,7 +169,7 @@ let userInputIndex = 0
 function insertSuggestion(suggestion) {
   // Focus the textarea, otherwise, it is not possible to insert the suggestion using the Tab key from another location
   activeRequestTextarea.focus();
-  console.log(activeRequestTextarea.value)
+  
   // Get the current cursor position
   const cursorPosition = activeRequestTextarea.selectionStart;
 
