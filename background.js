@@ -17,11 +17,17 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
       });
       return true; // Required to use sendResponse asynchronously
     }
-    else if(request.type === "getmodelType"){
+    else if(request.type === "getModelType"){
       chrome.storage.sync.get("modelType", (data) => {
         sendResponse({ modelType: data.modelType });
       });
       return true; // Required to use sendResponse asynchronously
+    }
+    else if(request.type === "getHuggingfaceApiKey"){
+      chrome.storage.sync.get("huggingfaceApiKey", (data) => {
+        sendResponse({ huggingfaceApiKey : data.huggingfaceApiKey});
+      })
+      return true;
     }
   });
   
