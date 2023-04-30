@@ -106,10 +106,7 @@ async function sendToOtherService(code) {
     },
     body: JSON.stringify({
       inputs: prompt,
-      stream: false,
-      parameters: {
-        return_full_text: false
-      }
+      stream: false
     })
   })
   const data = await response.json();
