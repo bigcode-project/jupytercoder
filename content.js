@@ -67,8 +67,7 @@ async function sendToOpenAI(prompt) {
 
   let suggestion = data.choices && data.choices[0] && data.choices[0].text;
   // Remove invisible characters and delete all spaces before the first character
-  suggestion = suggestion.replace(/\u200B/g, '').trimStart();
-
+  suggestion = suggestion.replace(/\u200B/g, '');
 
   // This is an example of a possible return: "    print('Hello World!')\n\nhello_world()\n\n§ Output… : ['Hello World!\\n']\n\n \n§ Markdown\n\n### Exercise"
   const outPutIndex = suggestion.indexOf("\n\n§ Output")
@@ -180,6 +179,7 @@ const getActiveCellPointerCode = (activeCell) => {
 
     // Which line
     const lineIndex = Math.round(parseFloat(style.getPropertyValue('top')) / 17)
+    
     // Obtain element for all line
     const linesElement = activeCell.getElementsByClassName('CodeMirror-line')
     // code dom element length in active line
@@ -191,9 +191,11 @@ const getActiveCellPointerCode = (activeCell) => {
     }
 
     for (let i = 0; i < linesElement.length; i++) {
-      if(i <= lineIndex) {
+      if(i < lineIndex) {
         leftContext += linesElement[i].textContent + "\n"
-      }else {
+      }else if(i == lineIndex){
+        leftContext += linesElement[i].textContent
+      }else{
         rightContext += linesElement[i].textContent  + "\n"
       }
     }
@@ -211,7 +213,7 @@ function getCellContentTextRequiredForOpenAI(activeCell) {
   // LeftContext refers to the left side of the pointer, and vice versa, If both are null, it is determined that the pointer is not at the far right
   const [leftContext, rightContext] = getActiveCellPointerCode(activeCell)
   
-  if(!leftContext && !rightContext){
+  if(!leftContext){
     return null
   }
 
@@ -229,6 +231,7 @@ function getCellContentTextRequiredForOpenAI(activeCell) {
     }
     codeContent += "\n"
   }
+
   return codeContent;
 }
 
