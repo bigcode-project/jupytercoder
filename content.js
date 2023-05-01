@@ -35,22 +35,16 @@ async function getHuggingfaceApiKey() {
 }
 
 
-// Use a regular expression to match the content between triple backticks
-const codeBlockRegex = /```([\s\S]*)```/;
-const codeHalfBlockRegex = /```([\s\S]*)/;
-
 // Function to send request to OpenAI API
 async function sendToOpenAI(prompt) {
   const apiKey = await getOpenAIKey();
   const modelType = await getmodelType();
-  if (!apiKey) {
-    // 总是忘记填写。。所以等了半天总是以为网络错误，改成了alert
-    alert("OpenAI API key not set."); 
-    return;
-  }else if(!modelType) {
-    alert("modelType not set."); 
+  
+  if (!apiKey || !modelType) {
+    alert("OpenAI API key or modelType not set."); 
     return;
   }
+
   const response = await fetch("https://api.openai.com/v1/completions", {
     method: "POST",
     headers: {
@@ -60,40 +54,38 @@ async function sendToOpenAI(prompt) {
     body: JSON.stringify({
       model: modelType,
       prompt,
-      temperature: 0.1,
+      temperature: 0,
       max_tokens: 40,
     }),
-    // 添加一个最大请求时间，目前没做相关于超时的处理，但如果超时了，就会在请求的单元格展示error
     timeout: 30000
   });
 
   const data = await response.json();
-  const suggestion = data.choices && data.choices[0] && data.choices[0].text;
-  
-
-  // don't know how many "```" exists, It is related to the token and also related to the model
-  let count = (suggestion.match(/```/g) || []).length;
-  let code = ""
-  switch(count){
-    case 1: 
-      var match = suggestion.match(codeHalfBlockRegex)
-      code = match && match[1] ? match[1].replace(/^\n\s*/, '').replace(/\n.*$/, '').replace(/\u200B/g, ''):""
-      break;
-    case 2:
-      var match = suggestion.match(codeBlockRegex)
-      code = match && match[1] ? match[1].replace(/^\n\s*/, '').replace(/\n.*$/, '').replace(/\u200B/g, ''):""
-      break;
-    default:code = suggestion;
+  if(!(data.choices && data.choices[0])){
+    return null
   }
 
-  return code
+  let suggestion = data.choices && data.choices[0] && data.choices[0].text;
+  // Remove invisible characters and delete all spaces before the first character
+  console.log(suggestion);
+  suggestion = suggestion.trimStart();
+
+
+  // This is an example of a possible return: "    print('Hello World!')\n\nhello_world()\n\n§ Output… : ['Hello World!\\n']\n\n \n§ Markdown\n\n### Exercise"
+  const outPutIndex = suggestion.indexOf("\n\n§ Output")
+  if(outPutIndex == -1){
+    return suggestion
+  }else{
+    return suggestion.substring(0,outPutIndex)
+  }
+
 }
 
 async function sendToOtherService(code) {
   const url = await getOtherServiceUrl();
   const token = await getHuggingfaceApiKey();
+  
   if (!url) {
-    // 总是忘记填写。。所以等了半天总是以为网络错误，改成了alert
     alert("otherServiceUrl not set.");
     return;
   }
@@ -106,10 +98,14 @@ async function sendToOtherService(code) {
     },
     body: JSON.stringify({
       inputs: prompt,
-      stream: false
+      stream: false,
+      parameters: {
+        return_full_text: false
+      }
     })
   })
   const data = await response.json();
+  console.log(data);
   if (/^\n/.test(data)) {
     data = data.replace(/^\n/, '');
   }
@@ -120,35 +116,20 @@ async function sendToOtherService(code) {
 
 async function getCodeCompletion(code) {
   const checked = await getChecked();
-  // 如果没有选择则弹出框提示
+  // If the user has not selected openai or bigcode
   if (!checked) {
     alert("The request method is not selected.");
     return;
   }
+
   if (checked == "openaiApiKey") {
-    return await getOpenAiWrapper(code)
+    return await sendToOpenAI(code)
   } else if (checked == "otherService") {
-    return await getOtherServiceUrlWrapper(code)
+    return await sendToOtherService(code)
   }
 }
 
-async function getOpenAiWrapper(code) {
-  const prompt = `
-  I have the following code:
-  
-  \`\`\`
-  ${code}
-  \`\`\`
-  
-  Please provide the missing code to complete the task. (do not include code that is already present in the prompt)
-  `;
 
-  return await sendToOpenAI(prompt);
-}
-
-async function getOtherServiceUrlWrapper(code) {
-  return await sendToOtherService(code)
-}
 
 // Code to be filled in after request completion
 let codeToFill = "";
@@ -222,21 +203,51 @@ const getActiveCellPointerCode = (activeCell) => {
 }
 
 
-
-function getCellContentText(activeCell) {
+function getCellContentTextRequiredForOpenAI(activeCell) {
   const cellElements = Array.from(document.querySelectorAll('.cell'));
   const activeCellIndex = cellElements.findIndex(cell => cell.contains(activeCell));
   // Check if there are at least 3 cells before the active cell
-
-  let combinedContent = "<start_jupyter>";
+  let codeContent = "";
 
   // LeftContext refers to the left side of the pointer, and vice versa, If both are null, it is determined that the pointer is not at the far right
+  const [leftContext, rightContext] = getActiveCellPointerCode(activeCell)
+  
+  if(!leftContext && !rightContext){
+    return null
+  }
+
+  // Iterate through the last 3 cells before the active cell
+  const startIndex = activeCellIndex - 3 < 0 ? 0 : activeCellIndex - 3;
+  for (let i = startIndex; i <= activeCellIndex; i++) {
+    if(i == activeCellIndex){
+      codeContent += leftContext
+      break
+    }else{
+      const cellElement = cellElements[i];
+      if (cellElement.classList.contains('code_cell')) {
+        codeContent += extractTextFromCell(cellElement);
+      }
+    }
+    codeContent += "\n"
+  }
+  return codeContent;
+}
+
+
+function getCellContentTextRequiredForBigCode(activeCell) {
+  const cellElements = Array.from(document.querySelectorAll('.cell'));
+  const activeCellIndex = cellElements.findIndex(cell => cell.contains(activeCell));
+  // Check if there are at least 3 cells before the active cell
+  let combinedContent = "<start_jupyter>";
+
+  // in active cell, LeftContext refers to the left side of the pointer, and vice versa, If both are null, it is determined that the pointer is not at the far right
   const [leftContext, rightContext] = getActiveCellPointerCode(activeCell)
 
   if(!leftContext && !rightContext){
     return null
   }
 
+  TODO: "The following code needs to add 'leftContext' and 'rightContext'"
   // Iterate through the last 3 cells before the active cell
   const startIndex = activeCellIndex - 3 < 0 ? 0 : activeCellIndex - 3;
   for (let i = startIndex; i <= activeCellIndex; i++) {
@@ -258,9 +269,20 @@ function getCellContentText(activeCell) {
     }
 
   }
-
   return combinedContent;
 }
+
+
+async function getCellContentText(activeCell){
+  const result = await getChecked()
+  if(result == "openaiApiKey"){
+    return getCellContentTextRequiredForOpenAI(activeCell)
+  }else{
+    return getCellContentTextRequiredForBigCode(activeCell)
+  }
+}
+
+
 
 function extractTextFromCell(cell) {
   const codeMirrorLines = cell.querySelectorAll('.CodeMirror-code pre');
@@ -300,7 +322,9 @@ const startWaitingAnimation = (activeCell) => {
     const withAllCodeSpan = linesElement[lineIndex].querySelectorAll('span')
     withAllCodeSpan[withAllCodeSpan.length-1].appendChild(animationElement)
   }else{
-    currectLineSpanList[currectLineSpanList.length-1].insertAdjacentElement('afterend', animationElement);
+    // Insert new hint code in the last code span
+    const withAllCodeSpan = linesElement[lineIndex].childNodes
+    withAllCodeSpan[withAllCodeSpan.length - 1].insertAdjacentElement('afterend', animationElement);
   }
   
 
@@ -380,15 +404,15 @@ if (document.querySelector('body.notebook_app')) {
       const activeCell = activeTextarea.parentElement.parentElement
 
       // Retrieve the content of the active cell 
-      const code = getCellContentText(activeCell);
+      const code = await getCellContentText(activeCell);
       
       if (!code) return;
 
       if (activeCell) {
         // Start Animation
         const [animationInterval, animationElement] = startWaitingAnimation(activeCell)
-
         isRequestInProgress = true
+
         const suggestion = await getCodeCompletion(code)
 
         if (suggestion) {
