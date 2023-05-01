@@ -66,7 +66,7 @@ async function sendToOpenAI(prompt) {
   }
 
   let suggestion = data.choices && data.choices[0] && data.choices[0].text;
-  // Remove invisible characters and delete all spaces before the first character
+  // Remove invisible characters
   suggestion = suggestion.replace(/\u200B/g, '');
 
   // This is an example of a possible return: "    print('Hello World!')\n\nhello_world()\n\n§ Output… : ['Hello World!\\n']\n\n \n§ Markdown\n\n### Exercise"
