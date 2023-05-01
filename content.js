@@ -348,7 +348,7 @@ const startWaitingAnimation = (activeCell) => {
         break;
     }
 
-    animationElement.innerHTML = ' ' + animatedText + " time left: " + Math.floor(timeLeft-- / 3) + "s"
+    animationElement.innerText = ' ' + animatedText + " time left: " + Math.floor(timeLeft-- / 3) + "s"
 
     // request timeout
     if (timeLeft <= 0) {
