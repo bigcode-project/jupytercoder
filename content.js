@@ -256,7 +256,7 @@ function getCellContentTextRequiredForBigCode(activeCell) {
     return null
   }
 
-  TODO: "The following code needs to add 'leftContext' and 'rightContext'"
+  TODO: "The following code needs to add 'rightContext'"
   // Iterate through the last 3 cells before the active cell
   const startIndex = activeCellIndex - 3 < 0 ? 0 : activeCellIndex - 3;
 
