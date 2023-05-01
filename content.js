@@ -191,13 +191,19 @@ const getActiveCellPointerCode = (activeCell) => {
     }
 
     for (let i = 0; i < linesElement.length; i++) {
+      
       if(i < lineIndex) {
         leftContext += linesElement[i].textContent + "\n"
       }else if(i == lineIndex){
         leftContext += linesElement[i].textContent
       }else{
-        rightContext += linesElement[i].textContent  + "\n"
+        if(i == linesElement.length-1){
+          rightContext += linesElement[i].textContent
+        }else{
+          rightContext += linesElement[i].textContent  + "\n"
+        }
       }
+
     }
 
     return [leftContext, rightContext]
