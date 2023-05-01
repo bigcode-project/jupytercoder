@@ -252,7 +252,7 @@ function getCellContentTextRequiredForBigCode(activeCell) {
   // in active cell, LeftContext refers to the left side of the pointer, and vice versa, If both are null, it is determined that the pointer is not at the far right
   const [leftContext, rightContext] = getActiveCellPointerCode(activeCell)
 
-  if(!leftContext && !rightContext){
+  if(!leftContext){
     return null
   }
 
@@ -261,11 +261,15 @@ function getCellContentTextRequiredForBigCode(activeCell) {
   const startIndex = activeCellIndex - 3 < 0 ? 0 : activeCellIndex - 3;
 
   for (let i = startIndex; i <= activeCellIndex; i++) {
+    if(i == activeCellIndex){
+      combinedContent += `<jupyter_code>${leftContext}`;
+      continue
+    }
+
     const cellElement = cellElements[i];
 
     if (cellElement.classList.contains('code_cell')) {
       const code = extractTextFromCell(cellElement);
-   
       combinedContent += `<jupyter_code>${code}`;
       const outputElement = cellElement.querySelector('.output_subarea');
       if (outputElement) {
@@ -303,11 +307,9 @@ function extractTextFromCell(cell) {
   codeMirrorLines.forEach((line) => {
     content.push(line.textContent);
   });
-  const content_str = content.join('\n');
 
-  return content_str;
+  return content.join('\n');
 }
-
 
 
 // 开始等待动画，有30s等待时间，如果等待时间过了，出现“error”字体，返回两个值如下，接收："const [animationInterval, animationElement] = startWaitingAnimation(activeCall)"
