@@ -87,7 +87,8 @@ async function sendToOtherService(code) {
     alert("otherServiceUrl not set.");
     return;
   }
-  const prompt = "<start_jupyter><jupyter_code>" + code.replace(/\u200B/g, '')
+ 
+  const prompt = code.replace(/\u200B/g, '')
   const response = await fetch(url, {
     method: "POST",
     headers: {
@@ -191,7 +192,7 @@ const getActiveCellPointerCode = (activeCell) => {
     }
 
     for (let i = 0; i < linesElement.length; i++) {
-      
+
       if(i < lineIndex) {
         leftContext += linesElement[i].textContent + "\n"
       }else if(i == lineIndex){
@@ -258,11 +259,13 @@ function getCellContentTextRequiredForBigCode(activeCell) {
   TODO: "The following code needs to add 'leftContext' and 'rightContext'"
   // Iterate through the last 3 cells before the active cell
   const startIndex = activeCellIndex - 3 < 0 ? 0 : activeCellIndex - 3;
+
   for (let i = startIndex; i <= activeCellIndex; i++) {
     const cellElement = cellElements[i];
 
     if (cellElement.classList.contains('code_cell')) {
       const code = extractTextFromCell(cellElement);
+   
       combinedContent += `<jupyter_code>${code}`;
       const outputElement = cellElement.querySelector('.output_subarea');
       if (outputElement) {
@@ -275,14 +278,15 @@ function getCellContentTextRequiredForBigCode(activeCell) {
       const text = extractTextFromCell(cellElement);
       combinedContent += `<jupyter_text>${text}`;
     }
-
   }
+
   return combinedContent;
 }
 
 
 async function getCellContentText(activeCell){
   const result = await getChecked()
+
   if(result == "openaiApiKey"){
     return getCellContentTextRequiredForOpenAI(activeCell)
   }else{
@@ -299,8 +303,9 @@ function extractTextFromCell(cell) {
   codeMirrorLines.forEach((line) => {
     content.push(line.textContent);
   });
+  const content_str = content.join('\n');
 
-  return content.join('\n');
+  return content_str;
 }
 
 
