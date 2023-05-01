@@ -67,7 +67,6 @@ async function sendToOpenAI(prompt) {
 
   let suggestion = data.choices && data.choices[0] && data.choices[0].text;
   // Remove invisible characters and delete all spaces before the first character
-  console.log(suggestion);
   suggestion = suggestion.trimStart();
 
 
@@ -105,7 +104,7 @@ async function sendToOtherService(code) {
     })
   })
   const data = await response.json();
-  console.log(data);
+  
   if (/^\n/.test(data)) {
     data = data.replace(/^\n/, '');
   }
