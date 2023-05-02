@@ -89,6 +89,7 @@ async function sendToOtherService(code) {
   }
  
   const prompt = code.replace(/\u200B/g, '')
+  console.log(JSON.stringify(prompt));
   const response = await fetch(url, {
     method: "POST",
     headers: {
@@ -225,7 +226,7 @@ function getCellContentTextRequiredForOpenAI(activeCell) {
   }
 
   // Iterate through the last 3 cells before the active cell
-  const startIndex = activeCellIndex - 3 < 0 ? 0 : activeCellIndex - 3;
+  const startIndex = 0;
   for (let i = startIndex; i <= activeCellIndex; i++) {
     if(i == activeCellIndex){
       codeContent += leftContext
