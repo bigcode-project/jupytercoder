@@ -1,7 +1,7 @@
 # Jupyter Coder
 
 This plugin is still in development. To test it, clone this repository first.
-Currently it only supports OPENAI code completion.
+Currently it supports the native jupyter mode of starcoder and Open AI completion API.
 
 ## Installation
 ```bash
