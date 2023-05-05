@@ -89,6 +89,7 @@ async function sendToOtherService(code) {
   }
  
   const prompt = code.replace(/\u200B/g, '')
+  console.log(JSON.stringify(prompt));
   const response = await fetch(url, {
     method: "POST",
     headers: {
@@ -99,17 +100,17 @@ async function sendToOtherService(code) {
       inputs: prompt,
       stream: false,
       parameters: {
-        return_full_text: false
+        return_full_text: false,
+        stop: ["<jupyter_output>"]
       }
     })
   })
   const data = await response.json();
   
-  if (/^\n/.test(data)) {
-    data = data.replace(/^\n/, '');
-  }
-  // 格式处理成可以输出到notebook的字符串
-  return data[0].generated_text;
+  const suggestion = data[0].generated_text;
+
+  // remove end token <jupyter_output> if exists
+  return removeJupyterOutput(suggestion)
 }
 
 
@@ -225,7 +226,7 @@ function getCellContentTextRequiredForOpenAI(activeCell) {
   }
 
   // Iterate through the last 3 cells before the active cell
-  const startIndex = activeCellIndex - 3 < 0 ? 0 : activeCellIndex - 3;
+  const startIndex = 0;
   for (let i = startIndex; i <= activeCellIndex; i++) {
     if(i == activeCellIndex){
       codeContent += leftContext
@@ -308,7 +309,15 @@ function extractTextFromCell(cell) {
   return content_str;
 }
 
+function removeJupyterOutput(str) {
+  const jupyterOutput = '<jupyter_output>';
 
+  if (str.endsWith(jupyterOutput)) {
+    return str.slice(0, -jupyterOutput.length);
+  }
+
+  return str;
+}
 
 // 开始等待动画，有30s等待时间，如果等待时间过了，出现“error”字体，返回两个值如下，接收："const [animationInterval, animationElement] = startWaitingAnimation(activeCall)"
 // 1. animationInterval（interval, 动画计时器），可使用clearInterval(animationInterval)消除动画, 每次请求完毕必须要关掉
