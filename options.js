@@ -44,6 +44,8 @@ chrome.storage.sync.get("huggingfaceApiKey", (data) => {
 chrome.storage.sync.get("otherService", (data) => {
   if (data.otherService) {
     document.getElementById("otherServiceUrl").value = data.otherService;
+  } else {
+    document.getElementById("otherServiceUrl").value = "https://api-inference.huggingface.co/models/bigcode/starcoderbase/"
   }
 });
 
