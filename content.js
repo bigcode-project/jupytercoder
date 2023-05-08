@@ -246,9 +246,7 @@ function getCellContentTextRequiredForOpenAI(activeCell) {
 
 function getCellContentTextRequiredForBigCode(activeCell) {
   const cellElements = Array.from(document.querySelectorAll(`.${currctJupyterModel.requiredClassName.cell}`));
-  
   const activeCellIndex = cellElements.findIndex(cell => cell.contains(activeCell));
-
   // Check if there are at least 3 cells before the active cell
   let combinedContent = "<start_jupyter>";
 
