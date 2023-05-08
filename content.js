@@ -245,8 +245,10 @@ function getCellContentTextRequiredForOpenAI(activeCell) {
 
 
 function getCellContentTextRequiredForBigCode(activeCell) {
-  const cellElements = Array.from(document.querySelectorAll('.cell'));
+  const cellElements = Array.from(document.querySelectorAll(`.${currctJupyterModel.requiredClassName.cell}`));
+  
   const activeCellIndex = cellElements.findIndex(cell => cell.contains(activeCell));
+
   // Check if there are at least 3 cells before the active cell
   let combinedContent = "<start_jupyter>";
 
@@ -257,6 +259,7 @@ function getCellContentTextRequiredForBigCode(activeCell) {
     return null
   }
 
+
   TODO: "The following code needs to add 'leftContext' and 'rightContext'"
   // Iterate through the last 3 cells before the active cell
   const startIndex = activeCellIndex - 3 < 0 ? 0 : activeCellIndex - 3;
@@ -264,11 +267,11 @@ function getCellContentTextRequiredForBigCode(activeCell) {
   for (let i = startIndex; i <= activeCellIndex; i++) {
     const cellElement = cellElements[i];
 
-    if (cellElement.classList.contains('code_cell')) {
+    if (cellElement.classList.contains(currctJupyterModel.requiredClassName.verify)) {
       const code = extractTextFromCell(cellElement);
    
       combinedContent += `<jupyter_code>${code}`;
-      const outputElement = cellElement.querySelector('.output_subarea');
+      const outputElement = cellElement.querySelector(`.${currctJupyterModel.requiredClassName.output}`);
       if (outputElement) {
         if (i !== activeCellIndex) {
           combinedContent += `<jupyter_output>`;
@@ -308,6 +311,7 @@ function extractTextFromCell(cell) {
 
   return content_str;
 }
+
 
 function removeJupyterOutput(str) {
   const jupyterOutput = '<jupyter_output>';
@@ -423,7 +427,7 @@ const montedEventListener = ()=>{
 
       // Obtain the current input box (cell) from the Textarea of the current input box
       const activeCell = activeTextarea.parentElement.parentElement
-
+      console.log(activeCell);
       // Retrieve the content of the active cell 
       const code = await getCellContentText(activeCell);
       
@@ -452,10 +456,34 @@ const montedEventListener = ()=>{
   document.addEventListener('keydown', addFillCodeKeyListener);
 }
 
+// Two options 'lab' and 'notebook'
+let currctJupyterModel = {}
+
+const notebookModel = {
+  name: "notebook",
+  requiredClassName:{
+    cell:"cell",
+    verify: "code_cell",
+    output: "output_subarea"
+  }
+}
+
+const labModel = {
+  name: "lab",
+  requiredClassName:{
+    cell:"jp-Notebook-cell",
+    verify: "jp-CodeCell",
+    output: "jp-Cell-outputWrapper"
+  }
+}
+
+
 
 // Check if the current page is a Jupyter Notebook
 if (document.querySelector('body.notebook_app')) {
   montedEventListener()
+  jupyterModel = "notebook"
+  currctJupyterModel = notebookModel
 }
 
 // Create a new MutationObserver, This object will listen for changes in elements in the DOM and execute callback functions when changes occur
@@ -472,6 +500,7 @@ const observer = new MutationObserver(function(mutations) {
       const dataJpThemeName = document.body.getAttribute("data-jp-theme-name");
       if(dataJpThemeName.indexOf("JupyterLab") != -1){
         montedEventListener()
+        currctJupyterModel = labModel
       }
 
     }
