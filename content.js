@@ -66,6 +66,7 @@ async function sendToOpenAI(prompt) {
   }
 
   let suggestion = data.choices && data.choices[0] && data.choices[0].text;
+  
   // Remove invisible characters
   suggestion = suggestion.replace(/\u200B/g, '');
 
@@ -89,7 +90,7 @@ async function sendToOtherService(code) {
   }
  
   const prompt = code.replace(/\u200B/g, '')
-  console.log(JSON.stringify(prompt));
+ 
   const response = await fetch(url, {
     method: "POST",
     headers: {
@@ -213,7 +214,7 @@ const getActiveCellPointerCode = (activeCell) => {
 
 
 function getCellContentTextRequiredForOpenAI(activeCell) {
-  const cellElements = Array.from(document.querySelectorAll('.cell'));
+  const cellElements = Array.from(document.querySelectorAll(`.${currctJupyterModel.requiredClassName.cell}`));
   const activeCellIndex = cellElements.findIndex(cell => cell.contains(activeCell));
   // Check if there are at least 3 cells before the active cell
   let codeContent = "";
@@ -233,8 +234,8 @@ function getCellContentTextRequiredForOpenAI(activeCell) {
       break
     }else{
       const cellElement = cellElements[i];
-      if (cellElement.classList.contains('code_cell')) {
-        codeContent += extractTextFromCell(cellElement);
+      if (cellElement.classList.contains(currctJupyterModel.requiredClassName.verify)) {
+        codeContent += extractTextFromCodeCell(cellElement);
       }
     }
     codeContent += "\n"
@@ -245,7 +246,7 @@ function getCellContentTextRequiredForOpenAI(activeCell) {
 
 
 function getCellContentTextRequiredForBigCode(activeCell) {
-  const cellElements = Array.from(document.querySelectorAll('.cell'));
+  const cellElements = Array.from(document.querySelectorAll(`.${currctJupyterModel.requiredClassName.cell}`));
   const activeCellIndex = cellElements.findIndex(cell => cell.contains(activeCell));
   // Check if there are at least 3 cells before the active cell
   let combinedContent = "<start_jupyter>";
@@ -257,6 +258,7 @@ function getCellContentTextRequiredForBigCode(activeCell) {
     return null
   }
 
+
   TODO: "The following code needs to add 'leftContext' and 'rightContext'"
   // Iterate through the last 3 cells before the active cell
   const startIndex = activeCellIndex - 3 < 0 ? 0 : activeCellIndex - 3;
@@ -264,19 +266,19 @@ function getCellContentTextRequiredForBigCode(activeCell) {
   for (let i = startIndex; i <= activeCellIndex; i++) {
     const cellElement = cellElements[i];
 
-    if (cellElement.classList.contains('code_cell')) {
-      const code = extractTextFromCell(cellElement);
+    if (cellElement.classList.contains(currctJupyterModel.requiredClassName.verify)) {
+      const code = extractTextFromCodeCell(cellElement);
    
       combinedContent += `<jupyter_code>${code}`;
-      const outputElement = cellElement.querySelector('.output_subarea');
+      const outputElement = cellElement.querySelector(`.${currctJupyterModel.requiredClassName.output}`);
       if (outputElement) {
         if (i !== activeCellIndex) {
           combinedContent += `<jupyter_output>`;
           combinedContent += outputElement.textContent;
         }
       }
-    } else if (cellElement.classList.contains('text_cell')) {
-      const text = extractTextFromCell(cellElement);
+    } else if (cellElement.classList.contains(currctJupyterModel.requiredClassName.text)) {
+      const text = extractTextFromTextCell(cellElement);
       combinedContent += `<jupyter_text>${text}`;
     }
   }
@@ -296,9 +298,9 @@ async function getCellContentText(activeCell){
 }
 
 
-
-function extractTextFromCell(cell) {
+function extractTextFromCodeCell(cell){
   const codeMirrorLines = cell.querySelectorAll('.CodeMirror-code pre');
+
   const content = [];
 
   codeMirrorLines.forEach((line) => {
@@ -308,6 +310,22 @@ function extractTextFromCell(cell) {
 
   return content_str;
 }
+
+
+function extractTextFromTextCell(cell) {
+  const codeMirrorLines = cell.querySelectorAll(`.${currctJupyterModel.requiredClassName.textOutput} p`);
+
+  const content = [];
+
+  codeMirrorLines.forEach((line) => {
+    content.push(line.textContent);
+  });
+  const content_str = content.join('\n');
+
+  return content_str;
+}
+
+
 
 function removeJupyterOutput(str) {
   const jupyterOutput = '<jupyter_output>';
@@ -404,9 +422,8 @@ const addFillCodeKeyListener = (event) => {
 };
 
 
-// Check if the current page is a Jupyter Notebook
-if (document.querySelector('body.notebook_app')) {
-  
+
+const montedEventListener = () => {
   document.addEventListener('keydown', async (event) => {
     // Check if the Ctrl + Space keys were pressed
     if (event.ctrlKey && event.code === 'Space') {
@@ -419,12 +436,12 @@ if (document.querySelector('body.notebook_app')) {
 
       //Obtain the Textarea of the current input box
       const activeTextarea = document.activeElement;
-
+      
       activeRequestTextarea = activeTextarea
 
       // Obtain the current input box (cell) from the Textarea of the current input box
       const activeCell = activeTextarea.parentElement.parentElement
-
+      
       // Retrieve the content of the active cell 
       const code = await getCellContentText(activeCell);
       
@@ -434,9 +451,9 @@ if (document.querySelector('body.notebook_app')) {
         // Start Animation
         const [animationInterval, animationElement] = startWaitingAnimation(activeCell)
         isRequestInProgress = true
-
+       
         const suggestion = await getCodeCompletion(code)
-
+        
         if (suggestion) {
           clearInterval(animationInterval)
           isRequestSuccessful = true
@@ -452,3 +469,61 @@ if (document.querySelector('body.notebook_app')) {
   });
   document.addEventListener('keydown', addFillCodeKeyListener);
 }
+
+// Two options 'lab' and 'notebook'
+let currctJupyterModel = {}
+
+const notebookModel = {
+  name: "notebook",
+  requiredClassName:{
+    cell:"cell",
+    verify: "code_cell",
+    output: "output_subarea",
+    text: "text_cell",
+    textOutput: "text_cell_render"
+  }
+}
+
+const labModel = {
+  name: "lab",
+  requiredClassName:{
+    cell:"jp-Notebook-cell",
+    verify: "jp-CodeCell",
+    output: "jp-Cell-outputWrapper",
+    text: "jp-MarkdownCell", 
+    textOutput: "jp-RenderedMarkdown"
+  }
+}
+
+
+
+// Check if the current page is a Jupyter Notebook
+if (document.querySelector('body.notebook_app')) {
+  montedEventListener()
+  currctJupyterModel = notebookModel
+}
+
+// Create a new MutationObserver, This object will listen for changes in elements in the DOM and execute callback functions when changes occur
+const bodyObserver = new MutationObserver(function(mutations) {
+
+  // In the callback function, use the forEach method to traverse the mutations array and obtain the attribute name attributeName of each mutated object's mutations. 
+  // There is only one mutation in jupyterlab
+  mutations.forEach(function(mutation) {
+
+    // If the attribute name is 'data jp theme name', 
+    if (mutation.attributeName === "data-jp-theme-name") {
+  
+       // use the getAttribute method to obtain the value of the data jp theme name attribute of the<body>element and store it in the dataJpThemeName variable.
+      const dataJpThemeName = document.body.getAttribute("data-jp-theme-name");
+      if(dataJpThemeName.indexOf("JupyterLab") != -1){
+        montedEventListener()
+        currctJupyterModel = labModel
+      }
+
+    }
+
+  });
+});
+
+// Start monitoring attribute changes of<body>elements
+bodyObserver.observe(document.body, { attributes: true });
