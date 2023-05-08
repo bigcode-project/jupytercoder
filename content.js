@@ -422,7 +422,7 @@ const addFillCodeKeyListener = (event) => {
 
 
 
-const montedEventListener = ()=>{
+const montedEventListener = () => {
   document.addEventListener('keydown', async (event) => {
     // Check if the Ctrl + Space keys were pressed
     if (event.ctrlKey && event.code === 'Space') {
