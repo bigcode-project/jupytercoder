@@ -314,7 +314,7 @@ function extractTextFromCodeCell(cell){
 
 
 function extractTextFromTextCell(cell) {
-  const codeMirrorLines = cell.querySelectorAll(`.${currctJupyterModel.requiredClassName.textOutput}`);
+  const codeMirrorLines = cell.querySelectorAll(`.${currctJupyterModel.requiredClassName.textOutput} p`);
 
   const content = [];
 
