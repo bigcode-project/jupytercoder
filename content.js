@@ -268,7 +268,7 @@ function getCellContentTextRequiredForBigCode(activeCell) {
     const cellElement = cellElements[i];
 
     if (cellElement.classList.contains(currctJupyterModel.requiredClassName.verify)) {
-      const code = extractTextFromCell(cellElement);
+      const code = extractTextFromCodeCell(cellElement);
    
       combinedContent += `<jupyter_code>${code}`;
       const outputElement = cellElement.querySelector(`.${currctJupyterModel.requiredClassName.output}`);
@@ -278,8 +278,8 @@ function getCellContentTextRequiredForBigCode(activeCell) {
           combinedContent += outputElement.textContent;
         }
       }
-    } else if (cellElement.classList.contains('text_cell')) {
-      const text = extractTextFromCell(cellElement);
+    } else if (cellElement.classList.contains(currctJupyterModel.requiredClassName.text)) {
+      const text = extractTextFromTextCell(cellElement);
       combinedContent += `<jupyter_text>${text}`;
     }
   }
@@ -299,9 +299,9 @@ async function getCellContentText(activeCell){
 }
 
 
-
-function extractTextFromCell(cell) {
+function extractTextFromCodeCell(cell){
   const codeMirrorLines = cell.querySelectorAll('.CodeMirror-code pre');
+
   const content = [];
 
   codeMirrorLines.forEach((line) => {
@@ -311,6 +311,21 @@ function extractTextFromCell(cell) {
 
   return content_str;
 }
+
+
+function extractTextFromTextCell(cell) {
+  const codeMirrorLines = cell.querySelectorAll(`.${currctJupyterModel.requiredClassName.textOutput}`);
+
+  const content = [];
+
+  codeMirrorLines.forEach((line) => {
+    content.push(line.textContent);
+  });
+  const content_str = content.join('\n');
+
+  return content_str;
+}
+
 
 
 function removeJupyterOutput(str) {
@@ -432,7 +447,7 @@ const montedEventListener = ()=>{
       const code = await getCellContentText(activeCell);
       
       if (!code) return;
-
+      console.log("code", JSON.stringify(code));
       if (activeCell) {
         // Start Animation
         const [animationInterval, animationElement] = startWaitingAnimation(activeCell)
@@ -464,7 +479,9 @@ const notebookModel = {
   requiredClassName:{
     cell:"cell",
     verify: "code_cell",
-    output: "output_subarea"
+    output: "output_subarea",
+    text: "text_cell",
+    textOutput: "text_cell_render"
   }
 }
 
@@ -473,7 +490,9 @@ const labModel = {
   requiredClassName:{
     cell:"jp-Notebook-cell",
     verify: "jp-CodeCell",
-    output: "jp-Cell-outputWrapper"
+    output: "jp-Cell-outputWrapper",
+    text: "jp-MarkdownCell", 
+    textOutput: "jp-RenderedMarkdown"
   }
 }
 
