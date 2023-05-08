@@ -404,9 +404,8 @@ const addFillCodeKeyListener = (event) => {
 };
 
 
-// Check if the current page is a Jupyter Notebook
-if (document.querySelector('body.notebook_app')) {
-  
+
+const montedEventListener = ()=>{
   document.addEventListener('keydown', async (event) => {
     // Check if the Ctrl + Space keys were pressed
     if (event.ctrlKey && event.code === 'Space') {
@@ -419,7 +418,7 @@ if (document.querySelector('body.notebook_app')) {
 
       //Obtain the Textarea of the current input box
       const activeTextarea = document.activeElement;
-
+      
       activeRequestTextarea = activeTextarea
 
       // Obtain the current input box (cell) from the Textarea of the current input box
@@ -452,3 +451,33 @@ if (document.querySelector('body.notebook_app')) {
   });
   document.addEventListener('keydown', addFillCodeKeyListener);
 }
+
+
+// Check if the current page is a Jupyter Notebook
+if (document.querySelector('body.notebook_app')) {
+  montedEventListener()
+}
+
+// Create a new MutationObserver, This object will listen for changes in elements in the DOM and execute callback functions when changes occur
+const observer = new MutationObserver(function(mutations) {
+
+  // In the callback function, use the forEach method to traverse the mutations array and obtain the attribute name attributeName of each mutated object's mutations. 
+  // There is only one mutation in jupyterlab
+  mutations.forEach(function(mutation) {
+
+    // If the attribute name is 'data jp theme name', 
+    if (mutation.attributeName === "data-jp-theme-name") {
+  
+       // use the getAttribute method to obtain the value of the data jp theme name attribute of the<body>element and store it in the dataJpThemeName variable.
+      const dataJpThemeName = document.body.getAttribute("data-jp-theme-name");
+      if(dataJpThemeName.indexOf("JupyterLab") != -1){
+        montedEventListener()
+      }
+
+    }
+
+  });
+});
+
+// Start monitoring attribute changes of<body>elements
+observer.observe(document.body, { attributes: true });
