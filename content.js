@@ -89,7 +89,7 @@ async function sendToOtherService(code) {
   }
  
   const prompt = code.replace(/\u200B/g, '')
-  console.log(JSON.stringify(prompt));
+ 
   const response = await fetch(url, {
     method: "POST",
     headers: {
@@ -427,7 +427,7 @@ const montedEventListener = ()=>{
 
       // Obtain the current input box (cell) from the Textarea of the current input box
       const activeCell = activeTextarea.parentElement.parentElement
-      console.log(activeCell);
+      
       // Retrieve the content of the active cell 
       const code = await getCellContentText(activeCell);
       
@@ -437,7 +437,7 @@ const montedEventListener = ()=>{
         // Start Animation
         const [animationInterval, animationElement] = startWaitingAnimation(activeCell)
         isRequestInProgress = true
-
+       
         const suggestion = await getCodeCompletion(code)
 
         if (suggestion) {
@@ -482,12 +482,11 @@ const labModel = {
 // Check if the current page is a Jupyter Notebook
 if (document.querySelector('body.notebook_app')) {
   montedEventListener()
-  jupyterModel = "notebook"
   currctJupyterModel = notebookModel
 }
 
 // Create a new MutationObserver, This object will listen for changes in elements in the DOM and execute callback functions when changes occur
-const observer = new MutationObserver(function(mutations) {
+const bodyObserver = new MutationObserver(function(mutations) {
 
   // In the callback function, use the forEach method to traverse the mutations array and obtain the attribute name attributeName of each mutated object's mutations. 
   // There is only one mutation in jupyterlab
@@ -509,4 +508,4 @@ const observer = new MutationObserver(function(mutations) {
 });
 
 // Start monitoring attribute changes of<body>elements
-observer.observe(document.body, { attributes: true });
+bodyObserver.observe(document.body, { attributes: true });
