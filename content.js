@@ -66,6 +66,7 @@ async function sendToOpenAI(prompt) {
   }
 
   let suggestion = data.choices && data.choices[0] && data.choices[0].text;
+  
   // Remove invisible characters
   suggestion = suggestion.replace(/\u200B/g, '');
 
@@ -445,14 +446,14 @@ const montedEventListener = () => {
       const code = await getCellContentText(activeCell);
       
       if (!code) return;
-      console.log("code", JSON.stringify(code));
+
       if (activeCell) {
         // Start Animation
         const [animationInterval, animationElement] = startWaitingAnimation(activeCell)
         isRequestInProgress = true
        
         const suggestion = await getCodeCompletion(code)
-
+        
         if (suggestion) {
           clearInterval(animationInterval)
           isRequestSuccessful = true
