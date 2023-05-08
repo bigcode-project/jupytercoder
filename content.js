@@ -213,7 +213,7 @@ const getActiveCellPointerCode = (activeCell) => {
 
 
 function getCellContentTextRequiredForOpenAI(activeCell) {
-  const cellElements = Array.from(document.querySelectorAll('.cell'));
+  const cellElements = Array.from(document.querySelectorAll(`.${currctJupyterModel.requiredClassName.cell}`));
   const activeCellIndex = cellElements.findIndex(cell => cell.contains(activeCell));
   // Check if there are at least 3 cells before the active cell
   let codeContent = "";
@@ -233,8 +233,8 @@ function getCellContentTextRequiredForOpenAI(activeCell) {
       break
     }else{
       const cellElement = cellElements[i];
-      if (cellElement.classList.contains('code_cell')) {
-        codeContent += extractTextFromCell(cellElement);
+      if (cellElement.classList.contains(currctJupyterModel.requiredClassName.verify)) {
+        codeContent += extractTextFromCodeCell(cellElement);
       }
     }
     codeContent += "\n"
