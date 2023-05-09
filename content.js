@@ -375,17 +375,15 @@ const loadCss = `
   }
 `;
 
-// 开始等待动画，有30s等待时间，如果等待时间过了，出现“error”字体，返回两个值如下，接收："const [animationInterval, animationElement] = startWaitingAnimation(activeCall)"
-// 1. animationInterval（interval, 动画计时器），可使用clearInterval(animationInterval)消除动画, 每次请求完毕必须要关掉
-// 2. animationElement (dom, 动画字体节点)， animationElement.innerHTML = xxx 来赋值
+// start request animation, The maximum animation duration is 30s
 const startWaitingAnimation = (activeCell) => {
   const inputElement = activeCell.parentElement.parentElement.parentElement;
 
-  // 创建新的<style>元素并将CSS样式添加到其中
+  // Create a new <style> element
   const styleElement = document.createElement('style');
   styleElement.textContent = loadCss;
 
-  // 将新的<style>元素添加到<head>元素中
+  // Add a new <style> element to the <head> element
   document.head.appendChild(styleElement);
 
   // get cursor element
