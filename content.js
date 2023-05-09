@@ -523,6 +523,7 @@ const montedEventListener = () => {
       }
 
       await mainProcess()
+
     }
 
   });
