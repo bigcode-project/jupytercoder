@@ -508,6 +508,7 @@ const mainProcess = async () => {
   }
 }
 
+// Automatic request timer
 let autoRequestTimeout;
 const montedEventListener = () => {
   document.addEventListener('keydown', async (event) => {
@@ -541,7 +542,7 @@ const montedEventListener = () => {
       clearTimeout(autoRequestTimeout);
     }
 
-    // Set a new timeout for 1 seconds
+    // Set a new timeout for 0.8 seconds. After my test, the 0.8s delay is the most user-friendly
     autoRequestTimeout = setTimeout(async () => {
       await mainProcess()
     }, 800);
