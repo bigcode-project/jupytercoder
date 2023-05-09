@@ -337,10 +337,56 @@ function removeJupyterOutput(str) {
   return str;
 }
 
+// left animation css
+const loadCss = `
+  .before-content:before {
+    content: "";
+    position: absolute;
+    top: 5px;
+    left: 10px;
+    right: 0;
+    bottom: 0;
+    border: 3px solid rgba(0, 0, 0, 0.1);
+    border-left-color: #000;
+    border-radius: 50%;
+    width: 15px;
+    height: 15px;
+    animation: spin 1s linear infinite;    
+  }
+
+  @keyframes spin {
+    to {
+      transform: rotate(360deg);
+    }
+  }
+  .paused:before {
+    content: "";
+    position: absolute;
+    top: 5px;
+    left: 10px;
+    right: 0;
+    bottom: 0;
+    border: 3px solid rgba(0, 0, 0, 0.1);
+    border-radius: 50%;
+    width: 15px;
+    height: 15px;
+    // animation: spin 1s linear infinite; 
+    border-left-color: red;
+  }
+`;
+
 // 开始等待动画，有30s等待时间，如果等待时间过了，出现“error”字体，返回两个值如下，接收："const [animationInterval, animationElement] = startWaitingAnimation(activeCall)"
 // 1. animationInterval（interval, 动画计时器），可使用clearInterval(animationInterval)消除动画, 每次请求完毕必须要关掉
 // 2. animationElement (dom, 动画字体节点)， animationElement.innerHTML = xxx 来赋值
 const startWaitingAnimation = (activeCell) => {
+  const inputElement = activeCell.parentElement.parentElement.parentElement;
+
+  // 创建新的<style>元素并将CSS样式添加到其中
+  const styleElement = document.createElement('style');
+  styleElement.textContent = loadCss;
+
+  // 将新的<style>元素添加到<head>元素中
+  document.head.appendChild(styleElement);
 
   // get cursor element
   const cursorElement = activeCell.querySelector('div.CodeMirror-cursor')
@@ -349,53 +395,41 @@ const startWaitingAnimation = (activeCell) => {
   const lineIndex = Math.round(parseFloat(style.getPropertyValue('top')) / 17)
   // Obtain element for all line
   const linesElement = activeCell.getElementsByClassName('CodeMirror-line')
+  // the code span elements for this active line
   const currectLineSpanList = linesElement[lineIndex].querySelectorAll('span span')
 
-  // Set the animated font dom element when it waits
+  // deprecate：Set the animated font dom element when it waits 
+  // As a code hint carrier
   const animationElement = document.createElement('span');
 
   animationElement.classList.add("per-insert-code")
   animationElement.style.color = 'grey';
 
-  // If it is a blank line
-  if(currectLineSpanList.length == 0){
+  // Insert gray code hints, If the active line has no span tag
+  if (currectLineSpanList.length == 0) {
     const withAllCodeSpan = linesElement[lineIndex].querySelectorAll('span')
-    withAllCodeSpan[withAllCodeSpan.length-1].appendChild(animationElement)
-  }else{
+    // creates an element in a unique code carrier, as long as the mouse exists, the code carrier exists
+    withAllCodeSpan[withAllCodeSpan.length - 1].appendChild(animationElement)
+  } else {
     // Insert new hint code in the last code span
     const withAllCodeSpan = linesElement[lineIndex].childNodes
     withAllCodeSpan[withAllCodeSpan.length - 1].insertAdjacentElement('afterend', animationElement);
   }
-  
+
 
   // Waiting steps, 0.333 seconds per step
   let timeLeft = 90;
   const animationInterval = setInterval(() => {
-    let animatedText = ''
-
-    let remainder = timeLeft % 3;
-    switch (remainder) {
-      case 2:
-        animatedText = '.    ';
-        break;
-      case 1:
-        animatedText = '..   ';
-        break;
-      default:
-        animatedText = '...  ';
-        break;
-    }
-
-    animationElement.innerText = ' ' + animatedText + " time left: " + Math.floor(timeLeft-- / 3) + "s"
-
-    // request timeout
-    if (timeLeft <= 0) {
-      animationElement.innerHTML = "error"
+    // Add request animation
+    inputElement.classList.add('before-content');
+    // If the request exceeds 30s
+    if (timeLeft-- <= 0) {
+      inputElement.classList.remove('before-content');
       clearInterval(animationInterval)
     }
 
   }, 333)
-  return [animationInterval, animationElement]
+  return [animationInterval, animationElement, inputElement]
 }
 
 
@@ -421,6 +455,60 @@ const addFillCodeKeyListener = (event) => {
   }
 };
 
+const mainProcess = async () => {
+  //Obtain the Textarea of the current input box
+  const activeTextarea = document.activeElement;
+      
+  activeRequestTextarea = activeTextarea
+
+  // Obtain the current input box (cell) from the Textarea of the current input box
+  const activeCell = activeTextarea.parentElement.parentElement
+  
+  // Retrieve the content of the active cell 
+  const code = await getCellContentText(activeCell);
+
+  if (!code) return;
+
+  if (activeCell) {
+    // Start Animation
+    const [animationInterval, animationElement, inputElement] = startWaitingAnimation(activeCell)
+    isRequestInProgress = true
+
+    let suggestion;
+    // Deal with a series of problems such as network
+    try{
+      suggestion = await getCodeCompletion(code)
+    }catch{
+      // cancel animation
+      clearInterval(animationInterval)
+      // cancel animation element
+      inputElement.classList.remove('before-content')
+      // Add error animation
+      inputElement.classList.add('paused')
+      // The request is forbidden within 5s, and the animation lasts for 5s
+      const pausedTimeOut = setTimeout(() => {
+        inputElement.classList.remove('paused')
+        clearTimeout(pausedTimeOut)
+        isRequestInProgress = false
+        isRequestSuccessful = false
+      }, 5000)
+      return
+    }
+    
+    if (suggestion) {
+      clearInterval(animationInterval)
+       // cancel animation element
+      inputElement.classList.remove('before-content')
+
+      isRequestSuccessful = true
+      isRequestInProgress = false
+      codeToFill = suggestion
+
+      // Replace the content of the text animation box with code
+      animationElement.innerHTML = suggestion
+    }
+  }
+}
 
 
 const montedEventListener = () => {
@@ -434,38 +522,9 @@ const montedEventListener = () => {
         return
       }
 
-      //Obtain the Textarea of the current input box
-      const activeTextarea = document.activeElement;
-      
-      activeRequestTextarea = activeTextarea
-
-      // Obtain the current input box (cell) from the Textarea of the current input box
-      const activeCell = activeTextarea.parentElement.parentElement
-      
-      // Retrieve the content of the active cell 
-      const code = await getCellContentText(activeCell);
-      
-      if (!code) return;
-
-      if (activeCell) {
-        // Start Animation
-        const [animationInterval, animationElement] = startWaitingAnimation(activeCell)
-        isRequestInProgress = true
-       
-        const suggestion = await getCodeCompletion(code)
-        
-        if (suggestion) {
-          clearInterval(animationInterval)
-          isRequestSuccessful = true
-          isRequestInProgress = false
-          codeToFill = suggestion
-
-          // Replace the content of the text animation box with code
-          animationElement.innerHTML = suggestion
-        }
-
-      }
+      await mainProcess()
     }
+
   });
   document.addEventListener('keydown', addFillCodeKeyListener);
 }
