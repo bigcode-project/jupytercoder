@@ -508,7 +508,7 @@ const mainProcess = async () => {
   }
 }
 
-
+let autoRequestTimeout;
 const montedEventListener = () => {
   document.addEventListener('keydown', async (event) => {
     // Check if the Ctrl + Space keys were pressed
@@ -519,13 +519,34 @@ const montedEventListener = () => {
       if (isRequestInProgress || isRequestSuccessful) {
         return
       }
-
       await mainProcess()
-
     }
 
   });
   document.addEventListener('keydown', addFillCodeKeyListener);
+
+  // '[', '{', ''','"' are invalid because of codemirror default event, did not find how to stop
+  document.addEventListener('input', async (event) => {
+
+    // If there is no code hint
+    if (document.querySelectorAll(".per-insert-code").length == 0) {
+      isRequestSuccessful = false
+    }
+
+    if (isRequestInProgress || isRequestSuccessful) {
+      return
+    }
+
+    if (autoRequestTimeout) {
+      clearTimeout(autoRequestTimeout);
+    }
+
+    // Set a new timeout for 1 seconds
+    autoRequestTimeout = setTimeout(async () => {
+      await mainProcess()
+    }, 800);
+
+  })
 }
 
 // Two options 'lab' and 'notebook'
