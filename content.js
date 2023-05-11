@@ -495,7 +495,7 @@ const mainProcess = async () => {
     
     if (suggestion) {
       clearInterval(animationInterval)
-       // cancel animation element
+      // cancel animation element
       inputElement.classList.remove('before-content')
 
       isRequestSuccessful = true
@@ -505,8 +505,13 @@ const mainProcess = async () => {
       // Replace the content of the text animation box with code
       animationElement.innerHTML = suggestion
     }
+
+    if (isRequestInProgress || isRequestSuccessful) {
+      return
+    }
+    
   }
-}
+};
 
 // Automatic request timer
 let autoRequestTimeout;
@@ -549,6 +554,8 @@ const montedEventListener = () => {
 
   })
 }
+
+
 
 // Two options 'lab' and 'notebook'
 let currctJupyterModel = {}
