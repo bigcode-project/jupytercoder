@@ -506,10 +506,6 @@ const mainProcess = async () => {
       animationElement.innerHTML = suggestion
     }
 
-    if (isRequestInProgress || isRequestSuccessful) {
-      return
-    }
-    
   }
 };
 
