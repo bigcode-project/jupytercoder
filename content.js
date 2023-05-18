@@ -745,8 +745,8 @@ const viewDiffCode = (activeCell, html)=>{
 const viewCodeResult = (codeFormat, suggestion, activeCell, animationElement) => {
   codeToFill = suggestion
   switch(requestType){
-    case "normal": animationElement.innerHTML = suggestion
-    case "fixBug": viewDiffCode(activeCell, generateCompareCodesWrapper(codeFormat, suggestion))
+    case "normal": animationElement.innerHTML = suggestion;break;
+    case "fixBug": viewDiffCode(activeCell, generateCompareCodesWrapper(codeFormat, suggestion));break;
   }
 }
 
