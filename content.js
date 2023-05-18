@@ -87,18 +87,22 @@ async function sendToOpenAI(prompt) {
 }
 
 
-function removeJupyterOutput(str) {
+function removeJupyterOutput(suggestion) {
   const jupyterOutput = '<jupyter_output>';
 
-  if (str.endsWith(jupyterOutput)) {
-    return str.slice(0, -jupyterOutput.length);
+  const unnecessaryTag = '<|endoftext|>'
+  const unnecessaryTagIndex = suggestion.indexOf(unnecessaryTag)
+
+  if (suggestion.endsWith(jupyterOutput)) {
+    let removedOutpoutSuggestion = suggestion.slice(0, -jupyterOutput.length);
+    return unnecessaryTagIndex == -1 ? removedOutpoutSuggestion:removedOutpoutSuggestion.slice(0, unnecessaryTagIndex)
   }
 
-  return str;
+  return unnecessaryTagIndex == -1 ? suggestion:suggestion.slice(0, unnecessaryTagIndex)
 }
 
 
-async function sendToBigcode(code) {
+async function sendToBigcode(code, isFixbug) {
   const url = await getBigcodeServiceUrl();
   const token = await getHuggingfaceApiKey();
   
@@ -106,8 +110,19 @@ async function sendToBigcode(code) {
     alert("otherServiceUrl not set.");
     return;
   }
- 
+
   const prompt = code.replace(/\u200B/g, '')
+
+  const bodyData = {
+    inputs: prompt,
+    stream: false,
+    parameters: {
+      return_full_text: false
+    }
+  }
+
+  isFixbug ? "":bodyData.parameters['stop'] = ["<jupyter_output>"]
+
  
   const response = await fetch(url, {
     method: "POST",
@@ -115,14 +130,7 @@ async function sendToBigcode(code) {
       "Content-Type": "application/json",
       "Authorization": `Bearer ${token}`,
     },
-    body: JSON.stringify({
-      inputs: prompt,
-      stream: false,
-      parameters: {
-        return_full_text: false,
-        stop: ["<jupyter_output>"]
-      }
-    })
+    body: JSON.stringify(bodyData)
   })
   const data = await response.json();
   
@@ -131,6 +139,7 @@ async function sendToBigcode(code) {
   // remove end token <jupyter_output> if exists
   return removeJupyterOutput(suggestion)
 }
+
 
 
 async function getCodeCompletion(code) {
@@ -144,7 +153,7 @@ async function getCodeCompletion(code) {
 
   switch(checked){
     case "openaiApiKey": return await sendToOpenAI(code);
-    case "otherService": return await sendToBigcode(code);
+    case "otherService": return await sendToBigcode(code, false);
     default: return ""
   }
 
@@ -159,7 +168,8 @@ let isRequestInProgress = false;
 let isRequestSuccessful = false;
 // Textarea during the request (allows writing code in other cells while the request is in progress)
 let activeRequestTextarea = null;
-
+// Request method, fix bug or normal
+let requestType = null
 
 function insertSuggestion(suggestion) {
   // Focus the textarea, otherwise, it is not possible to insert the suggestion using the Tab key from another location
@@ -183,6 +193,34 @@ function insertSuggestion(suggestion) {
   // Trigger a keydown event with Tab key to perform auto-indentation
   const tabEvent = new KeyboardEvent('keydown', { key: 'Tab' });
   activeRequestTextarea.dispatchEvent(tabEvent);
+}
+
+function removeUserCellFullCode(){
+  if(activeRequestTextarea){
+    let event = new KeyboardEvent("keydown", { key: "Backspace", keyCode: 8, which: 8, code: "Backspace" });
+    activeRequestTextarea.dispatchEvent(event);
+  }
+}
+
+function insertSuggestionFixBug(suggestion){
+  // Focus the textarea, otherwise, it is not possible to insert the suggestion using the Tab key from another location
+  activeRequestTextarea.focus();
+
+  for (let index = 0; index < suggestion.length; index++) {
+    removeUserCellFullCode()
+  }
+  enableCode()
+
+  activeRequestTextarea.value = suggestion;
+
+  // Trigger an input event on the textarea to update the CodeMirror instance
+  const event = new Event('input', { bubbles: true, cancelable: true });
+  activeRequestTextarea.dispatchEvent(event);
+
+  // Trigger a keydown event with Tab key to perform auto-indentation
+  const tabEvent = new KeyboardEvent('keydown', { key: 'Tab' });
+  activeRequestTextarea.dispatchEvent(tabEvent);
+
 }
 
 
@@ -229,14 +267,19 @@ const getActiveCellPointerCode = (activeCell, cellIndex) => {
       })
     }
   }
-  const outputElement = activeCell.querySelector(`.${currctJupyterModel.requiredClassName.output}`);
-  if (outputElement && currentCellType == "code") {
+
+  // Get complete cells
+  const fullCell = activeCell.parentElement.parentElement.parentElement.parentElement
+
+  const outputElement = fullCell.querySelector(`.${currctJupyterModel.requiredClassName.output}`);
+
+  if (outputElement) {
     cellContent.push({
-      "content": linesElement[i].textContent,
+      "content": outputElement.textContent,
       "cellIndex": cellIndex,
       "isCursor": false,
       "type": "output",
-      "lineIndex": i
+      "lineIndex": 0
     })
   }
   return cellContent
@@ -345,7 +388,7 @@ const getActiveContext = () => {
       context = [...context, ...cellContent]
     }
   }
-  console.log(context);
+
   return context
 }
 
@@ -404,6 +447,153 @@ function getCellContentTextRequiredForBigCode() {
   }
 
   return code += "<jupyter_code>"
+}
+
+
+
+function parseErrorFullmessage(message){
+  const meassgeLines = message.split("\n").filter((line)=>{
+    return line != "" && line != " " 
+  })
+  return meassgeLines[meassgeLines.length - 1]
+}
+
+
+
+function formatCodeAndBugIllustrate(activeCell){
+  const codeLineInformation = getActiveCellPointerCode(activeCell, 0)
+
+
+  let code = "<commit_before>"
+  let errorMessageIndex = -1
+  for(let index = 0; index <= codeLineInformation.length-1; index++){
+    const lineInformation = codeLineInformation[index]
+
+    if(lineInformation.type == "output"){
+      errorMessageIndex = index
+      break
+    }
+
+    if(index == codeLineInformation.length - 1){
+      code += lineInformation.content
+      break
+    }else{
+      code += lineInformation.content + "\n"
+    }
+  }
+
+  if (errorMessageIndex == -1){
+    return ""
+  }
+
+  return `${code}<commit_msg>fix bug, ${parseErrorFullmessage(codeLineInformation[errorMessageIndex].content)}<commit_after>`
+}
+
+
+
+const compareCodeLines = (codeLine1, codeLine2) => {
+  codeLine1 = codeLine1.toLowerCase();
+  codeLine2 = codeLine2.toLowerCase();
+
+  const distance = levenshteinDistanceDP(codeLine1, codeLine2);
+
+  const similarityScore = 1 - distance / Math.max(codeLine1.length, codeLine2.length);
+
+  return similarityScore >= 0.8;
+}
+
+
+const levenshteinDistanceDP = (str1, str2) => {
+  const m = str1.length;
+  const n = str2.length;
+  const dp = Array(n + 1).fill(0);
+
+  for (let j = 1; j <= n; j++) {
+    dp[j] = j;
+  }
+
+  for (let i = 1; i <= m; i++) {
+    let prev = dp[0];
+    dp[0] = i;
+    for (let j = 1; j <= n; j++) {
+      let temp = dp[j];
+      if (str1[i - 1] === str2[j - 1]) {
+        dp[j] = prev;
+      } else {
+        dp[j] = Math.min(dp[j - 1], dp[j], prev) + 1;
+      }
+      prev = temp;
+    }
+  }
+
+  return dp[n];
+}
+
+
+const generateCompareCodes = (oldCode, newCode) => {
+  // Split the strings into lines and store them in separate arrays
+  const oldCodeLine = oldCode.split('\n');
+  const newCodeLine = newCode.split('\n');
+
+  // Create an empty array to store the generated HTML
+  const html = [];
+  let newCodeIndex = 0
+  let newCodeAssistIndex = 0
+
+  // Iterate over the lines and compare them
+  for (let i = 0; i < Math.max(oldCodeLine.length, newCodeLine.length); i++) {
+    newCodeAssistIndex = newCodeIndex
+    const oldLine = i < oldCodeLine.length ? oldCodeLine[i] : '';
+    const newLine = newCodeIndex < newCodeLine.length ? newCodeLine[newCodeIndex] : '';
+
+    // If the lines are the same, generate a gray span
+    if (oldLine === newLine) {
+      html.push(`<span style="color: #787878">= ${oldLine}</span>`);
+      newCodeIndex++;
+    }else if(compareCodeLines(oldLine, newLine)){//这里判断相似度 ,如果相似，视为代码错误，旧的标红，在下方新增（绿色）
+      html.push(`<span style="color: red;">- ${oldLine}</span>`)
+      html.push(`<span style="color: green;">+ ${newLine}</span>`)
+      newCodeIndex++
+    }
+    else { // 如果完全不一样，则视为新代码段，直接在上方新增（绿色）
+      for( newCodeAssistIndex; newCodeAssistIndex < newCodeLine.length; newCodeAssistIndex++) {
+        if(oldLine == newCodeLine[newCodeAssistIndex + 1]){
+          newCodeAssistIndex ++
+          for(newCodeIndex ; newCodeIndex < newCodeAssistIndex ; newCodeIndex ++) { // 如果有多行新增代码则for 逐个push
+            html.push(`<span style="color: green;">+ ${newCodeLine[newCodeIndex]}</span>`)
+            i--
+          }
+        }else{
+          continue
+        }
+      }
+    }
+  }
+  // Join the generated HTML and return it
+  return html.join('\n');
+}
+
+const generateCompareCodesWrapper = (prompt, result)=>{
+  const cutoffPositions = prompt.indexOf("<commit_msg>")
+  preCodeFormat = prompt.slice(0, cutoffPositions)
+  preCode = preCodeFormat.replace("<commit_before>","")
+  return generateCompareCodes(preCode, result)
+}
+
+const disableCode = () => {
+  const activeCell = activeRequestTextarea.parentElement.parentElement
+  const codeMirrorLines = activeCell.querySelectorAll('.CodeMirror-code pre');
+  for (let i = 0; i < codeMirrorLines.length; i++) {
+    codeMirrorLines[i].style.display = "none"
+  }
+}
+
+const enableCode = () => {
+  const activeCell = activeRequestTextarea.parentElement.parentElement
+  const codeMirrorLines = activeCell.querySelectorAll('.CodeMirror-code pre');
+  for (let i = 0; i < codeMirrorLines.length; i++) {
+    codeMirrorLines[i].style.display = "block"
+  }
 }
 
 
@@ -512,16 +702,23 @@ const addFillCodeKeyListener = (event) => {
 
     // If the animated text element exists, it's assumed that the user wants to insert the code into the code block
     if (animationElementList.length === 1) {
+
       // delete animation element
       animationElementList[0].remove()
 
-      insertSuggestion(codeToFill);
+      if (requestType == "normal"){
+        insertSuggestion(codeToFill);
+      }else if(requestType == "fixBug"){
+        insertSuggestionFixBug(codeToFill)  
+      } 
+     
     }
 
     // Reset the request successful flag
     isRequestSuccessful = false;
   }
 };
+
 
 
 const mainProcess = async () => {
@@ -548,7 +745,7 @@ const mainProcess = async () => {
     // Deal with a series of problems such as network
     try{
       suggestion = await getCodeCompletion(code)
-    }catch{
+    }catch(err){
       // cancel animation
       clearInterval(animationInterval)
       // cancel animation element
@@ -582,6 +779,75 @@ const mainProcess = async () => {
 }
 
 
+const viewDiffCode = (activeCell, html)=>{
+  const codeMirrorCode = activeCell.querySelector(".CodeMirror-code")
+  const codeMirrorCodeLine = document.createElement('pre');
+  codeMirrorCodeLine.classList.add("CodeMirror-line")
+
+  codeMirrorCodeLine.innerHTML = html
+  codeMirrorCode.appendChild(codeMirrorCodeLine)
+}
+
+
+const fixBugProcess = async () => {
+    //Obtain the Textarea of the current input box
+    const activeTextarea = document.activeElement;
+      
+    activeRequestTextarea = activeTextarea
+  
+    // Obtain the current input box (cell) from the Textarea of the current input box
+    const activeCell = activeTextarea.parentElement.parentElement
+    
+    // Retrieve the content of the active cell 
+    const code = formatCodeAndBugIllustrate(activeCell);
+  
+    if (!code) return;
+
+    if (activeCell) {
+      // Start Animation
+      const [animationInterval, animationElement, inputElement] = startWaitingAnimation(activeCell)
+      isRequestInProgress = true
+  
+      let suggestion;
+  
+      // Deal with a series of problems such as network
+      try{
+        suggestion = await sendToBigcode(code, true)
+      }catch{
+        // cancel animation
+        clearInterval(animationInterval)
+        // cancel animation element
+        inputElement.classList.remove('before-content')
+        // Add error animation
+        inputElement.classList.add('paused')
+        // The request is forbidden within 5s, and the animation lasts for 5s
+        const pausedTimeOut = setTimeout(() => {
+          inputElement.classList.remove('paused')
+          clearTimeout(pausedTimeOut)
+          isRequestInProgress = false
+          isRequestSuccessful = false
+        }, 5000)
+        return
+      }
+
+      if (suggestion) {
+        clearInterval(animationInterval)
+         // cancel animation element
+        inputElement.classList.remove('before-content')
+        disableCode()
+        viewDiffCode(activeCell, generateCompareCodesWrapper(code, suggestion))
+        isRequestSuccessful = true
+        isRequestInProgress = false
+        codeToFill = suggestion
+        
+        // // Replace the content of the text animation box with code
+        // animationElement.innerHTML = generateCompareCodesWrapper(code, suggestion)
+      }
+
+    }
+  
+}
+
 const montedEventListener = () => {
   document.addEventListener('keydown', async (event) => {
     // Check if the Ctrl + Space keys were pressed
@@ -592,9 +858,18 @@ const montedEventListener = () => {
       if (isRequestInProgress || isRequestSuccessful) {
         return
       }
-
+      requestType = "normal"
       await mainProcess()
 
+    }else if(event.ctrlKey && event.code === 'Backquote'){
+       // Block default events
+       event.preventDefault();
+      
+       if (isRequestInProgress || isRequestSuccessful) {
+         return
+       }
+       requestType = "fixBug"
+       await fixBugProcess()
     }
 
   });
