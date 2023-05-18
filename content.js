@@ -527,8 +527,6 @@ const mainProcess = async () => {
   // Retrieve the content of the active cell 
   const code = await getCellContentText(activeCell);
 
-  console.log("code",JSON.stringify(code));
-
   if (!code) return;
 
   if (activeCell) {
