@@ -168,8 +168,9 @@ let isRequestInProgress = false;
 let isRequestSuccessful = false;
 // Textarea during the request (allows writing code in other cells while the request is in progress)
 let activeRequestTextarea = null;
-// Request method, fix bug or normal
+// Request type, fix bug or normal
 let requestType = null
+
 
 function insertSuggestion(suggestion) {
   // Focus the textarea, otherwise, it is not possible to insert the suggestion using the Tab key from another location
@@ -195,7 +196,7 @@ function insertSuggestion(suggestion) {
   activeRequestTextarea.dispatchEvent(tabEvent);
 }
 
-function removeUserCellFullCode(){
+function simulateUserPressingBackspace(){
   if(activeRequestTextarea){
     let event = new KeyboardEvent("keydown", { key: "Backspace", keyCode: 8, which: 8, code: "Backspace" });
     activeRequestTextarea.dispatchEvent(event);
@@ -205,9 +206,12 @@ function removeUserCellFullCode(){
 function insertSuggestionFixBug(suggestion){
   // Focus the textarea, otherwise, it is not possible to insert the suggestion using the Tab key from another location
   activeRequestTextarea.focus();
+  const cellContent = getActiveCellPointerCode(activeRequestTextarea.parentElement.parentElement, 0)
 
-  for (let index = 0; index < suggestion.length; index++) {
-    removeUserCellFullCode()
+  for (let index = 0; index < cellContent.length; index++) {
+    for (let j = 0; j < cellContent[index].content.length; j++){
+      simulateUserPressingBackspace()
+    } 
   }
   enableCode()
 
@@ -472,7 +476,7 @@ function formatCodeAndBugIllustrate(activeCell){
     if(lineInformation.type == "output"){
       errorMessageIndex = index
       break
-    }
+    }   
 
     if(index == codeLineInformation.length - 1){
       code += lineInformation.content
@@ -502,7 +506,7 @@ const compareCodeLines = (codeLine1, codeLine2) => {
   return similarityScore >= 0.8;
 }
 
-
+// Levenshtein distance, Obtain similarity based on distance
 const levenshteinDistanceDP = (str1, str2) => {
   const m = str1.length;
   const n = str2.length;
@@ -518,8 +522,10 @@ const levenshteinDistanceDP = (str1, str2) => {
     for (let j = 1; j <= n; j++) {
       let temp = dp[j];
       if (str1[i - 1] === str2[j - 1]) {
+        // Characters are equal and no action is required
         dp[j] = prev;
       } else {
+        // Characters are not equal, take the minimum value of adjacent position operands and add 1
         dp[j] = Math.min(dp[j - 1], dp[j], prev) + 1;
       }
       prev = temp;
@@ -550,16 +556,16 @@ const generateCompareCodes = (oldCode, newCode) => {
     if (oldLine === newLine) {
       html.push(`<span style="color: #787878">= ${oldLine}</span>`);
       newCodeIndex++;
-    }else if(compareCodeLines(oldLine, newLine)){//这里判断相似度 ,如果相似，视为代码错误，旧的标红，在下方新增（绿色）
+    }else if(compareCodeLines(oldLine, newLine)){// Determine the similarity here. If it is similar, it will be considered a code error. The old one will be highlighted in red and added below (green)
       html.push(`<span style="color: red;">- ${oldLine}</span>`)
       html.push(`<span style="color: green;">+ ${newLine}</span>`)
       newCodeIndex++
     }
-    else { // 如果完全不一样，则视为新代码段，直接在上方新增（绿色）
+    else { // If it is completely different, it will be considered as a new code snippet and added directly above (green)
       for( newCodeAssistIndex; newCodeAssistIndex < newCodeLine.length; newCodeAssistIndex++) {
         if(oldLine == newCodeLine[newCodeAssistIndex + 1]){
           newCodeAssistIndex ++
-          for(newCodeIndex ; newCodeIndex < newCodeAssistIndex ; newCodeIndex ++) { // 如果有多行新增代码则for 逐个push
+          for(newCodeIndex ; newCodeIndex < newCodeAssistIndex ; newCodeIndex ++) { // If there are multiple new lines of code, push them one by one for
             html.push(`<span style="color: green;">+ ${newCodeLine[newCodeIndex]}</span>`)
             i--
           }
@@ -573,13 +579,14 @@ const generateCompareCodes = (oldCode, newCode) => {
   return html.join('\n');
 }
 
+// Different HTML for generating code
 const generateCompareCodesWrapper = (prompt, result)=>{
-  const cutoffPositions = prompt.indexOf("<commit_msg>")
-  preCodeFormat = prompt.slice(0, cutoffPositions)
-  preCode = preCodeFormat.replace("<commit_before>","")
+  let preCode = prompt.slice(29)
+  preCode = preCode.slice(0, preCode.length - 14)
   return generateCompareCodes(preCode, result)
 }
 
+// Hide all code for the active cell
 const disableCode = () => {
   const activeCell = activeRequestTextarea.parentElement.parentElement
   const codeMirrorLines = activeCell.querySelectorAll('.CodeMirror-code pre');
@@ -588,6 +595,7 @@ const disableCode = () => {
   }
 }
 
+// Restore all code that hides the current cell
 const enableCode = () => {
   const activeCell = activeRequestTextarea.parentElement.parentElement
   const codeMirrorLines = activeCell.querySelectorAll('.CodeMirror-code pre');
@@ -706,6 +714,7 @@ const addFillCodeKeyListener = (event) => {
       // delete animation element
       animationElementList[0].remove()
 
+      // request type "normal" or "fixBug"
       if (requestType == "normal"){
         insertSuggestion(codeToFill);
       }else if(requestType == "fixBug"){
@@ -720,6 +729,34 @@ const addFillCodeKeyListener = (event) => {
 };
 
 
+// Show different in the current cell
+const viewDiffCode = (activeCell, html)=>{
+  disableCode()
+
+  // Due to the need to hide user code, the previous preview logic cannot be used
+  const codeMirrorCode = activeCell.querySelector(".CodeMirror-code")
+  const codeMirrorCodeLine = document.createElement('pre');
+  codeMirrorCodeLine.classList.add("CodeMirror-line")
+
+  codeMirrorCodeLine.innerHTML = html
+  codeMirrorCode.appendChild(codeMirrorCodeLine)
+}
+
+const viewCodeResult = (codeFormat, suggestion, activeCell, animationElement) => {
+  codeToFill = suggestion
+  switch(requestType){
+    case "normal": animationElement.innerHTML = suggestion
+    case "fixBug": viewDiffCode(activeCell, generateCompareCodesWrapper(codeFormat, suggestion))
+  }
+}
+
+const getCodeFormat = async (activeCell) => {
+  switch(requestType){
+    case "normal": return await getCellContentText(activeCell);
+    case "fixBug": return formatCodeAndBugIllustrate(activeCell);
+    default: return ""
+  }
+}
 
 const mainProcess = async () => {
   //Obtain the Textarea of the current input box
@@ -731,7 +768,7 @@ const mainProcess = async () => {
   const activeCell = activeTextarea.parentElement.parentElement
   
   // Retrieve the content of the active cell 
-  const code = await getCellContentText(activeCell);
+  let code = await getCodeFormat(activeCell)
 
   if (!code) return;
 
@@ -770,83 +807,13 @@ const mainProcess = async () => {
 
       isRequestSuccessful = true
       isRequestInProgress = false
-      codeToFill = suggestion
+      
+      viewCodeResult(code, suggestion, activeCell, animationElement)
 
-      // Replace the content of the text animation box with code
-      animationElement.innerHTML = suggestion
     }
   }
 }
 
-
-const viewDiffCode = (activeCell, html)=>{
-  const codeMirrorCode = activeCell.querySelector(".CodeMirror-code")
-  const codeMirrorCodeLine = document.createElement('pre');
-  codeMirrorCodeLine.classList.add("CodeMirror-line")
-
-  codeMirrorCodeLine.innerHTML = html
-  codeMirrorCode.appendChild(codeMirrorCodeLine)
-}
-
-
-const fixBugProcess = async () => {
-    //Obtain the Textarea of the current input box
-    const activeTextarea = document.activeElement;
-      
-    activeRequestTextarea = activeTextarea
-  
-    // Obtain the current input box (cell) from the Textarea of the current input box
-    const activeCell = activeTextarea.parentElement.parentElement
-    
-    // Retrieve the content of the active cell 
-    const code = formatCodeAndBugIllustrate(activeCell);
-  
-    if (!code) return;
-
-    if (activeCell) {
-      // Start Animation
-      const [animationInterval, animationElement, inputElement] = startWaitingAnimation(activeCell)
-      isRequestInProgress = true
-  
-      let suggestion;
-  
-      // Deal with a series of problems such as network
-      try{
-        suggestion = await sendToBigcode(code, true)
-      }catch{
-        // cancel animation
-        clearInterval(animationInterval)
-        // cancel animation element
-        inputElement.classList.remove('before-content')
-        // Add error animation
-        inputElement.classList.add('paused')
-        // The request is forbidden within 5s, and the animation lasts for 5s
-        const pausedTimeOut = setTimeout(() => {
-          inputElement.classList.remove('paused')
-          clearTimeout(pausedTimeOut)
-          isRequestInProgress = false
-          isRequestSuccessful = false
-        }, 5000)
-        return
-      }
-
-      if (suggestion) {
-        clearInterval(animationInterval)
-         // cancel animation element
-        inputElement.classList.remove('before-content')
-        disableCode()
-        viewDiffCode(activeCell, generateCompareCodesWrapper(code, suggestion))
-        isRequestSuccessful = true
-        isRequestInProgress = false
-        codeToFill = suggestion
-        
-        // // Replace the content of the text animation box with code
-        // animationElement.innerHTML = generateCompareCodesWrapper(code, suggestion)
-      }
-
-    }
-  
-}
 
 const montedEventListener = () => {
   document.addEventListener('keydown', async (event) => {
@@ -869,15 +836,17 @@ const montedEventListener = () => {
          return
        }
        requestType = "fixBug"
-       await fixBugProcess()
+       await mainProcess()
     }
 
   });
   document.addEventListener('keydown', addFillCodeKeyListener);
 }
 
+
 // Two options 'lab' and 'notebook'
 let currctJupyterModel = {}
+
 
 const notebookModel = {
   name: "notebook",
