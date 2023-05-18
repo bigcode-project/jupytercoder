@@ -5,7 +5,7 @@ async function getOpenAIKey() {
     });
   });
 }
-async function getOtherServiceUrl() {
+async function getBigcodeServiceUrl() {
   return new Promise((resolve) => {
     chrome.runtime.sendMessage({ type: "getUrl" }, (response) => {
       resolve(response.otherServiceUrl);
@@ -34,6 +34,19 @@ async function getHuggingfaceApiKey() {
   })
 }
 
+
+function removeOpenaiOutput(suggestion) {
+  let outPutIndex = suggestion.indexOf("\n\n§ Output")
+
+  if (outPutIndex == -1){
+    let outPutIndex = suggestion.indexOf("\n\n# Output")
+
+    return outPutIndex == -1 ? suggestion:suggestion.substring(0, outPutIndex)
+  }else{
+    return suggestion.substring(0, outPutIndex)
+  }
+
+}
 
 // Function to send request to OpenAI API
 async function sendToOpenAI(prompt) {
@@ -70,18 +83,23 @@ async function sendToOpenAI(prompt) {
   // Remove invisible characters
   suggestion = suggestion.replace(/\u200B/g, '');
 
-  // This is an example of a possible return: "    print('Hello World!')\n\nhello_world()\n\n§ Output… : ['Hello World!\\n']\n\n \n§ Markdown\n\n### Exercise"
-  const outPutIndex = suggestion.indexOf("\n\n§ Output")
-  if(outPutIndex == -1){
-    return suggestion
-  }else{
-    return suggestion.substring(0,outPutIndex)
-  }
-
+  return removeOpenaiOutput(suggestion)
 }
 
-async function sendToOtherService(code) {
-  const url = await getOtherServiceUrl();
+
+function removeJupyterOutput(str) {
+  const jupyterOutput = '<jupyter_output>';
+
+  if (str.endsWith(jupyterOutput)) {
+    return str.slice(0, -jupyterOutput.length);
+  }
+
+  return str;
+}
+
+
+async function sendToBigcode(code) {
+  const url = await getBigcodeServiceUrl();
   const token = await getHuggingfaceApiKey();
   
   if (!url) {
@@ -117,19 +135,20 @@ async function sendToOtherService(code) {
 
 async function getCodeCompletion(code) {
   const checked = await getChecked();
+
   // If the user has not selected openai or bigcode
   if (!checked) {
     alert("The request method is not selected.");
     return;
   }
 
-  if (checked == "openaiApiKey") {
-    return await sendToOpenAI(code)
-  } else if (checked == "otherService") {
-    return await sendToOtherService(code)
+  switch(checked){
+    case "openaiApiKey": return await sendToOpenAI(code);
+    case "otherService": return await sendToBigcode(code);
+    default: return ""
   }
-}
 
+}
 
 
 // Code to be filled in after request completion
@@ -167,123 +186,60 @@ function insertSuggestion(suggestion) {
 }
 
 
+const getActiveCellPointerCode = (activeCell, cellIndex) => {
+  let cellContent = []
 
-const getActiveCellPointerCode = (activeCell) => {
-    let leftContext = ""
-    let rightContext = ""
+  // get cursor element
+  const cursorElement = activeCell.querySelector('div.CodeMirror-cursor')
 
-    // get cursor element
-    const cursorElement = activeCell.querySelector('div.CodeMirror-cursor')
+  const style = window.getComputedStyle(cursorElement);
 
-    const style = window.getComputedStyle(cursorElement);
+  // 指针所在位置的偏移量
+  const cursorOffsetLeft = Math.round(parseFloat(style.getPropertyValue('left')))
 
-    // 指针所在位置的偏移量
-    const cursorOffsetLeft = Math.round(parseFloat(style.getPropertyValue('left')))
+  // Which line
+  const lineIndex = Math.round(parseFloat(style.getPropertyValue('top')) / 17)
 
-    // Which line
-    const lineIndex = Math.round(parseFloat(style.getPropertyValue('top')) / 17)
-    
-    // Obtain element for all line
-    const linesElement = activeCell.getElementsByClassName('CodeMirror-line')
-    // code dom element length in active line
-    const codeElementWdth = linesElement[lineIndex].querySelector("span").offsetWidth
+  // Obtain element for all line
+  const linesElement = activeCell.getElementsByClassName('CodeMirror-line')
+  // code dom element length in active line
+  const codeElementWdth = linesElement[lineIndex].querySelector("span").offsetWidth
 
-    // Determine whether the pointer is at the end of a line, Because there is a left marring, so -4, but due to precision issues so -3
-    if(cursorOffsetLeft - 3 < codeElementWdth){
-        return [null, null]
-    }
-
-    for (let i = 0; i < linesElement.length; i++) {
-
-      if(i < lineIndex) {
-        leftContext += linesElement[i].textContent + "\n"
-      }else if(i == lineIndex){
-        leftContext += linesElement[i].textContent
-      }else{
-        if(i == linesElement.length-1){
-          rightContext += linesElement[i].textContent
-        }else{
-          rightContext += linesElement[i].textContent  + "\n"
-        }
-      }
-
-    }
-
-    return [leftContext, rightContext]
-}
-
-
-function getCellContentTextRequiredForOpenAI(activeCell) {
-  const cellElements = Array.from(document.querySelectorAll(`.${currctJupyterModel.requiredClassName.cell}`));
-  const activeCellIndex = cellElements.findIndex(cell => cell.contains(activeCell));
-  // Check if there are at least 3 cells before the active cell
-  let codeContent = "";
-
-  // LeftContext refers to the left side of the pointer, and vice versa, If both are null, it is determined that the pointer is not at the far right
-  const [leftContext, rightContext] = getActiveCellPointerCode(activeCell)
-  
-  if(!leftContext){
-    return null
+  // Determine whether the pointer is at the end of a line, Because there is a left marring, so -4, but due to precision issues so -3
+  if (cursorOffsetLeft - 3 < codeElementWdth) {
+    return [null, null]
   }
 
-  // Iterate through the last 3 cells before the active cell
-  const startIndex = 0;
-  for (let i = startIndex; i <= activeCellIndex; i++) {
-    if(i == activeCellIndex){
-      codeContent += leftContext
-      break
-    }else{
-      const cellElement = cellElements[i];
-      if (cellElement.classList.contains(currctJupyterModel.requiredClassName.verify)) {
-        codeContent += extractTextFromCodeCell(cellElement);
-      }
-    }
-    codeContent += "\n"
-  }
-
-  return codeContent;
-}
-
-
-function getCellContentTextRequiredForBigCode(activeCell) {
-  const cellElements = Array.from(document.querySelectorAll(`.${currctJupyterModel.requiredClassName.cell}`));
-  const activeCellIndex = cellElements.findIndex(cell => cell.contains(activeCell));
-  // Check if there are at least 3 cells before the active cell
-  let combinedContent = "<start_jupyter>";
-
-  // in active cell, LeftContext refers to the left side of the pointer, and vice versa, If both are null, it is determined that the pointer is not at the far right
-  const [leftContext, rightContext] = getActiveCellPointerCode(activeCell)
-
-  if(!leftContext && !rightContext){
-    return null
-  }
-
-
-  TODO: "The following code needs to add 'leftContext' and 'rightContext'"
-  // Iterate through the last 3 cells before the active cell
-  const startIndex = activeCellIndex - 3 < 0 ? 0 : activeCellIndex - 3;
-
-  for (let i = startIndex; i <= activeCellIndex; i++) {
-    const cellElement = cellElements[i];
-
-    if (cellElement.classList.contains(currctJupyterModel.requiredClassName.verify)) {
-      const code = extractTextFromCodeCell(cellElement);
-   
-      combinedContent += `<jupyter_code>${code}`;
-      const outputElement = cellElement.querySelector(`.${currctJupyterModel.requiredClassName.output}`);
-      if (outputElement) {
-        if (i !== activeCellIndex) {
-          combinedContent += `<jupyter_output>`;
-          combinedContent += outputElement.textContent;
-        }
-      }
-    } else if (cellElement.classList.contains(currctJupyterModel.requiredClassName.text)) {
-      const text = extractTextFromTextCell(cellElement);
-      combinedContent += `<jupyter_text>${text}`;
+  for (let i = 0; i < linesElement.length; i++) {
+    if (i == lineIndex) {
+      cellContent.push({
+        "content": linesElement[i].textContent,
+        "cellIndex": cellIndex,
+        "isCursor": true,
+        "type": "code",
+        "lineIndex": i
+      })
+    } else {
+      cellContent.push({
+        "content": linesElement[i].textContent,
+        "cellIndex": cellIndex,
+        "isCursor": false,
+        "type": "code",
+        "lineIndex": i
+      })
     }
   }
-
-  return combinedContent;
+  const outputElement = activeCell.querySelector(`.${currctJupyterModel.requiredClassName.output}`);
+  if (outputElement && currentCellType == "code") {
+    cellContent.push({
+      "content": linesElement[i].textContent,
+      "cellIndex": cellIndex,
+      "isCursor": false,
+      "type": "output",
+      "lineIndex": i
+    })
+  }
+  return cellContent
 }
 
 
@@ -298,44 +254,149 @@ async function getCellContentText(activeCell){
 }
 
 
-function extractTextFromCodeCell(cell){
-  const codeMirrorLines = cell.querySelectorAll('.CodeMirror-code pre');
+/*
+  Obtain information about the code in the cell and return it by line
 
-  const content = [];
+  Params:
+    cellElement: cell dom element
+    cellIndex: index corresponding to the cell in the context
 
-  codeMirrorLines.forEach((line) => {
-    content.push(line.textContent);
-  });
-  const content_str = content.join('\n');
-
-  return content_str;
-}
-
-
-function extractTextFromTextCell(cell) {
-  const codeMirrorLines = cell.querySelectorAll(`.${currctJupyterModel.requiredClassName.textOutput} p`);
-
-  const content = [];
-
-  codeMirrorLines.forEach((line) => {
-    content.push(line.textContent);
-  });
-  const content_str = content.join('\n');
-
-  return content_str;
-}
-
-
-
-function removeJupyterOutput(str) {
-  const jupyterOutput = '<jupyter_output>';
-
-  if (str.endsWith(jupyterOutput)) {
-    return str.slice(0, -jupyterOutput.length);
+  Return:
+    Example:
+      [{"content": def hello_world():,"cellIndex": 0,"isCursor": false,"type": "code","lineIndex": 0}, ...]
+      - content: content of a line
+      - cellIndex: index corresponding to the cell in the context
+      - isCursor: is the mouse pointer in this line
+      - type: code | text(markdown) | output
+      - lineIndex: line number in this cell
+      
+*/
+const getCellCode = (cellElement, cellIndex) => {
+  let currentCellType = ""
+  if (cellElement.classList.contains(currctJupyterModel.requiredClassName.verify)) {
+    currentCellType = "code"
+  } else if (cellElement.classList.contains(currctJupyterModel.requiredClassName.text)) {
+    currentCellType = "text"
+  } else {
+    return []
   }
 
-  return str;
+  const cellContent = []
+  const codeLines = cellElement.querySelectorAll('.CodeMirror-line')
+  for (let i = 0; i < codeLines.length; i++) {
+    cellContent.push({
+      "content": codeLines[i].textContent,
+      "cellIndex": cellIndex,
+      "isCursor": false,
+      "type": currentCellType,
+      "lineIndex": i
+    })
+  }
+
+  const outputElement = cellElement.querySelector(`.${currctJupyterModel.requiredClassName.output}`);
+  if (outputElement && currentCellType == "code") {
+    cellContent.push({
+      "content": outputElement.textContent,
+      "cellIndex": cellIndex,
+      "isCursor": false,
+      "type": "output",
+      "lineIndex": 0
+    })
+  }
+
+  return cellContent;
 }
+
+/*
+  Get Cell Context, returns a total of 5 cell, symmetrically based on the cell of the current focus
+
+  Return:
+    Example:
+      [{"content": def hello_world():,"cellIndex": 0,"isCursor": false,"type": "code","lineIndex": 0}, ...]
+      - content: content of a line
+      - cellIndex: index corresponding to the cell in the context
+      - isCursor: is the mouse pointer in this line
+      - type: code | text(markdown) | output
+      - lineIndex: line number in this cell
+      
+*/
+const getActiveContext = () => {
+  // Obtain the current input box (cell) from the Textarea of the current input box
+  const activeCell = document.activeElement.parentElement.parentElement;
+
+  const cellElements = Array.from(document.querySelectorAll(`.${currctJupyterModel.requiredClassName.cell}`));
+  const activeCellIndex = cellElements.findIndex(cell => cell.contains(activeCell));
+  let context = []
+  for (let i = 0; i < cellElements.length; i++) {
+    if (i == activeCellIndex) {
+      const activeCellContent = getActiveCellPointerCode(activeCell, i)
+      context = [...context, ...activeCellContent]
+    } else if (i >= activeCellIndex - 2 || i <= activeCellIndex + 2) {
+      const cellContent = getCellCode(cellElements[i], i)
+      context = [...context, ...cellContent]
+    }
+  }
+
+  return context
+}
+
+// prompt required by openai
+function getCellContentTextRequiredForOpenAI() {
+   const context = getActiveContext()
+   let code = ""
+
+   for(let index = 0; index < context.length; index++){
+    const lineInformation = context[index]
+
+    if(lineInformation.type == "code"){
+      if(index == context.length - 1 || lineInformation.isCursor){
+        return code + lineInformation.content
+      }else{
+        code += lineInformation.content += "\n"
+      }
+    }
+
+  }
+
+}
+
+function getBigcodeFormattPrefix(typeStr){
+  switch(typeStr){
+    case "code": return "<jupyter_code>";
+    case "text": return "<jupyter_text>";
+    case "output": return "<jupyter_output>";
+  }
+}
+
+// prompt required by bigcode
+function getCellContentTextRequiredForBigCode() {
+  const context = getActiveContext()
+
+  let code = "<start_jupyter>"
+  let cellCode = getBigcodeFormattPrefix(context[0].type)
+  
+  for(let index = 0; index < context.length; index++){
+    const lineInformation = context[index]
+
+    if(index == context.length - 1 || lineInformation.isCursor){
+      code += cellCode + lineInformation.content
+      break
+    }
+
+    const nextLineInformation = context[index + 1]
+
+    if(lineInformation.cellIndex != nextLineInformation.cellIndex || lineInformation.type != nextLineInformation.type){
+      code += cellCode + lineInformation.content
+      cellCode = getBigcodeFormattPrefix(nextLineInformation.type)
+    }else{
+      cellCode += lineInformation.content + "\n"
+    }
+
+  }
+
+  return code += "<jupyter_code>"
+}
+
 
 // left animation css
 const loadCss = `
@@ -453,6 +514,7 @@ const addFillCodeKeyListener = (event) => {
   }
 };
 
+
 const mainProcess = async () => {
   //Obtain the Textarea of the current input box
   const activeTextarea = document.activeElement;
@@ -465,6 +527,8 @@ const mainProcess = async () => {
   // Retrieve the content of the active cell 
   const code = await getCellContentText(activeCell);
 
+  console.log("code",JSON.stringify(code));
+
   if (!code) return;
 
   if (activeCell) {
@@ -473,10 +537,11 @@ const mainProcess = async () => {
     isRequestInProgress = true
 
     let suggestion;
+
     // Deal with a series of problems such as network
     try{
       suggestion = await getCodeCompletion(code)
-    }catch{
+    }catch(err){
       // cancel animation
       clearInterval(animationInterval)
       // cancel animation element
@@ -492,6 +557,7 @@ const mainProcess = async () => {
       }, 5000)
       return
     }
+    
     
     if (suggestion) {
       clearInterval(animationInterval)
@@ -515,7 +581,7 @@ const montedEventListener = () => {
     if (event.ctrlKey && event.code === 'Space') {
       // Block default events
       event.preventDefault();
-
+      
       if (isRequestInProgress || isRequestSuccessful) {
         return
       }
