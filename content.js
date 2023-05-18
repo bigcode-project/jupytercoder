@@ -541,7 +541,7 @@ const mainProcess = async () => {
     // Deal with a series of problems such as network
     try{
       suggestion = await getCodeCompletion(code)
-    }catch(err){
+    }catch{
       // cancel animation
       clearInterval(animationInterval)
       // cancel animation element
