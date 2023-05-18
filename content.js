@@ -272,36 +272,45 @@ async function getCellContentText(activeCell){
       
 */
 const getCellCode = (cellElement, cellIndex) => {
-  let currentCellType = ""
+  const cellContent = []
+
   if (cellElement.classList.contains(currctJupyterModel.requiredClassName.verify)) {
-    currentCellType = "code"
+    const codeLines = cellElement.querySelectorAll('.CodeMirror-line')
+    for (let i = 0; i < codeLines.length; i++) {
+      cellContent.push({
+        "content": codeLines[i].textContent,
+        "cellIndex": cellIndex,
+        "isCursor": false,
+        "type": "code",
+        "lineIndex": i
+      })
+    }
+
+    const outputElement = cellElement.querySelector(`.${currctJupyterModel.requiredClassName.output}`);
+    if (outputElement && outputElement.textContent) {
+      cellContent.push({
+        "content": outputElement.textContent,
+        "cellIndex": cellIndex,
+        "isCursor": false,
+        "type": "output",
+        "lineIndex": 0
+      })
+    }
+
   } else if (cellElement.classList.contains(currctJupyterModel.requiredClassName.text)) {
-    currentCellType = "text"
+    const textLines = cellElement.querySelectorAll(`.${currctJupyterModel.requiredClassName.textOutput} p`)
+    
+    for (let i = 0; i < textLines.length; i++) {
+      cellContent.push({
+        "content": textLines[i].textContent,
+        "cellIndex": cellIndex,
+        "isCursor": false,
+        "type": "text",
+        "lineIndex": i
+      })
+    }
   } else {
     return []
-  }
-
-  const cellContent = []
-  const codeLines = cellElement.querySelectorAll('.CodeMirror-line')
-  for (let i = 0; i < codeLines.length; i++) {
-    cellContent.push({
-      "content": codeLines[i].textContent,
-      "cellIndex": cellIndex,
-      "isCursor": false,
-      "type": currentCellType,
-      "lineIndex": i
-    })
-  }
-
-  const outputElement = cellElement.querySelector(`.${currctJupyterModel.requiredClassName.output}`);
-  if (outputElement && currentCellType == "code") {
-    cellContent.push({
-      "content": outputElement.textContent,
-      "cellIndex": cellIndex,
-      "isCursor": false,
-      "type": "output",
-      "lineIndex": 0
-    })
   }
 
   return cellContent;
@@ -336,7 +345,7 @@ const getActiveContext = () => {
       context = [...context, ...cellContent]
     }
   }
-
+  console.log(context);
   return context
 }
 
