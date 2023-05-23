@@ -496,6 +496,10 @@ function formatCodeAndBugIllustrate(activeCell){
 
 
 const compareCodeLines = (codeLine1, codeLine2) => {
+  if (codeLine1 == codeLine1){
+    return true
+  }
+  
   codeLine1 = codeLine1.toLowerCase();
   codeLine2 = codeLine2.toLowerCase();
 
@@ -537,6 +541,8 @@ const levenshteinDistanceDP = (str1, str2) => {
 
 
 const generateCompareCodes = (oldCode, newCode) => {
+  console.log(oldCode);
+  console.log(newCode);
   // Split the strings into lines and store them in separate arrays
   const oldCodeLine = oldCode.split('\n');
   const newCodeLine = newCode.split('\n');
@@ -581,8 +587,8 @@ const generateCompareCodes = (oldCode, newCode) => {
 
 // Different HTML for generating code
 const generateCompareCodesWrapper = (prompt, result)=>{
-  let preCode = prompt.slice(29)
-  preCode = preCode.slice(0, preCode.length - 14)
+  const preCodeMesageSplit = prompt.split("<commit_msg>")
+  const preCode = preCodeMesageSplit[0].slice(15)
   return generateCompareCodes(preCode, result)
 }
 
@@ -769,7 +775,7 @@ const mainProcess = async () => {
   
   // Retrieve the content of the active cell 
   let code = await getCodeFormat(activeCell)
-
+  console.log("code",code);
   if (!code) return;
 
   if (activeCell) {
