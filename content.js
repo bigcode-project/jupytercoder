@@ -496,10 +496,6 @@ function formatCodeAndBugIllustrate(activeCell){
 
 
 const compareCodeLines = (codeLine1, codeLine2) => {
-  if (codeLine1 == codeLine1){
-    return true
-  }
-
   codeLine1 = codeLine1.toLowerCase();
   codeLine2 = codeLine2.toLowerCase();
 
@@ -541,6 +537,7 @@ const levenshteinDistanceDP = (str1, str2) => {
 
 
 const generateCompareCodes = (oldCode, newCode) => {
+
   // Split the strings into lines and store them in separate arrays
   const oldCodeLine = oldCode.split('\n');
   const newCodeLine = newCode.split('\n');
@@ -551,8 +548,13 @@ const generateCompareCodes = (oldCode, newCode) => {
   let newCodeAssistIndex = 0
 
   // Iterate over the lines and compare them
-  for (let i = 0; i < Math.max(oldCodeLine.length, newCodeLine.length); i++) {
+  for (let i = 0; i < oldCodeLine.length - 1; i++) {
     newCodeAssistIndex = newCodeIndex
+
+    if(i >= oldCodeLine.length && newCodeIndex >= newCodeLine.length ){
+      break;
+    }
+
     const oldLine = i < oldCodeLine.length ? oldCodeLine[i] : '';
     const newLine = newCodeIndex < newCodeLine.length ? newCodeLine[newCodeIndex] : '';
 
@@ -571,14 +573,15 @@ const generateCompareCodes = (oldCode, newCode) => {
           newCodeAssistIndex ++
           for(newCodeIndex ; newCodeIndex < newCodeAssistIndex ; newCodeIndex ++) { // If there are multiple new lines of code, push them one by one for
             html.push(`<span style="color: green;">+ ${newCodeLine[newCodeIndex]}</span>`)
-            i--
           }
+          i--
         }else{
           continue
         }
       }
     }
   }
+
   // Join the generated HTML and return it
   return html.join('\n');
 }
