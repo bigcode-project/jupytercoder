@@ -88,6 +88,7 @@ async function sendToOpenAI(prompt) {
 
 
 function removeJupyterOutput(suggestion) {
+  suggestion = suggestion.replace("# -*- coding: utf-8 -*-\n\n", "")
   const jupyterOutput = '<jupyter_output>';
 
   const unnecessaryTag = '<|endoftext|>'
@@ -387,7 +388,7 @@ const getActiveContext = () => {
     if (i == activeCellIndex) {
       const activeCellContent = getActiveCellPointerCode(activeCell, i)
       context = [...context, ...activeCellContent]
-    } else if (i >= activeCellIndex - 2 || i <= activeCellIndex + 2) {
+    } else if (i >= activeCellIndex - 2 && i <= activeCellIndex + 2) {
       const cellContent = getCellCode(cellElements[i], i)
       context = [...context, ...cellContent]
     }
@@ -433,6 +434,10 @@ function getCellContentTextRequiredForBigCode() {
   
   for(let index = 0; index < context.length; index++){
     const lineInformation = context[index]
+
+    if(lineInformation.type == "output"){
+      continue
+    }
 
     if(index == context.length - 1 || lineInformation.isCursor){
       code += cellCode + lineInformation.content
@@ -540,6 +545,7 @@ let invisibleCodeReg = /[\u200B-\u200D\uFEFF]/g
 const generateCompareCodes = (oldCode, newCode) => {
   oldCode = oldCode.replace(invisibleCodeReg, "")
   newCode = newCode.replace(invisibleCodeReg, "")
+
   // Split the strings into lines and store them in separate arrays
   const oldCodeLine = oldCode.split('\n');
   const newCodeLine = newCode.split('\n');
@@ -590,9 +596,18 @@ const generateCompareCodes = (oldCode, newCode) => {
 
       if(perInsertCode.length == 0){
         html.push(`<span style="color: red;">- ${oldLine}</span>`)
+        for(newCodeIndex ; newCodeIndex < newCodeAssistIndex; newCodeIndex ++) { // If there are multiple new lines of code, push them one by one for
+          perInsertCode.push(`<span style="color: green;">+ ${newCodeLine[newCodeIndex]}</span>`)
+        }
       }
 
       html = [...html, ...perInsertCode]
+    }
+  }
+
+  if(newCodeIndex < newCodeLine.length ){
+    for(newCodeIndex ; newCodeIndex < newCodeLine.length; newCodeIndex ++) {
+      html.push(`<span style="color: green;">+ ${newCodeLine[newCodeIndex]}</span>`)
     }
   }
 
