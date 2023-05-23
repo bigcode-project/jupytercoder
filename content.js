@@ -467,7 +467,6 @@ function parseErrorFullmessage(message){
 function formatCodeAndBugIllustrate(activeCell){
   const codeLineInformation = getActiveCellPointerCode(activeCell, 0)
 
-
   let code = "<commit_before>"
   let errorMessageIndex = -1
   for(let index = 0; index <= codeLineInformation.length-1; index++){
@@ -484,6 +483,7 @@ function formatCodeAndBugIllustrate(activeCell){
     }else{
       code += lineInformation.content + "\n"
     }
+
   }
 
   if (errorMessageIndex == -1){
@@ -537,20 +537,19 @@ const levenshteinDistanceDP = (str1, str2) => {
 
 
 const generateCompareCodes = (oldCode, newCode) => {
-
   // Split the strings into lines and store them in separate arrays
   const oldCodeLine = oldCode.split('\n');
   const newCodeLine = newCode.split('\n');
 
+  if (oldCodeLine[oldCodeLine.length-1] == "" ) oldCodeLine.pop()
+  
   // Create an empty array to store the generated HTML
-  const html = [];
+  let html = [];
   let newCodeIndex = 0
   let newCodeAssistIndex = 0
 
   // Iterate over the lines and compare them
-  for (let i = 0; i < oldCodeLine.length - 1; i++) {
-    newCodeAssistIndex = newCodeIndex
-
+  for (let i = 0; i < oldCodeLine.length; i++) {
     if(i >= oldCodeLine.length && newCodeIndex >= newCodeLine.length ){
       break;
     }
@@ -566,19 +565,31 @@ const generateCompareCodes = (oldCode, newCode) => {
       html.push(`<span style="color: red;">- ${oldLine}</span>`)
       html.push(`<span style="color: green;">+ ${newLine}</span>`)
       newCodeIndex++
-    }
-    else { // If it is completely different, it will be considered as a new code snippet and added directly above (green)
-      for( newCodeAssistIndex; newCodeAssistIndex < newCodeLine.length; newCodeAssistIndex++) {
-        if(oldLine == newCodeLine[newCodeAssistIndex + 1]){
-          newCodeAssistIndex ++
-          for(newCodeIndex ; newCodeIndex < newCodeAssistIndex ; newCodeIndex ++) { // If there are multiple new lines of code, push them one by one for
-            html.push(`<span style="color: green;">+ ${newCodeLine[newCodeIndex]}</span>`)
+    }else{ // If it is completely different, it will be considered as a new code snippet and added directly above (green)
+      newCodeAssistIndex = newCodeIndex + 1
+      perInsertCode = []
+
+      for(newCodeAssistIndex; newCodeAssistIndex < newCodeLine.length; newCodeAssistIndex++) {
+        if(oldLine == newCodeLine[newCodeAssistIndex]){
+          for(newCodeIndex ; newCodeIndex < newCodeAssistIndex; newCodeIndex ++) { // If there are multiple new lines of code, push them one by one for
+            perInsertCode.push(`<span style="color: green;">+ ${newCodeLine[newCodeIndex]}</span>`)
           }
           i--
-        }else{
-          continue
+          break
+        }else if(compareCodeLines(oldLine, newCodeLine[newCodeIndex])){
+          html.push(`<span style="color: red;">- ${oldLine}</span>`)
+          for(newCodeIndex ; newCodeIndex < newCodeAssistIndex; newCodeIndex ++) { // If there are multiple new lines of code, push them one by one for
+            perInsertCode.push(`<span style="color: green;">+ ${newCodeLine[newCodeIndex]}</span>`)
+          }
+          break
         }
       }
+
+      if(perInsertCode.length == 0){
+        html.push(`<span style="color: red;">- ${oldLine}</span>`)
+      }
+
+      html = [...html, ...perInsertCode]
     }
   }
 
@@ -751,6 +762,7 @@ const viewDiffCode = (activeCell, html)=>{
 
 const viewCodeResult = (codeFormat, suggestion, activeCell, animationElement) => {
   codeToFill = suggestion
+
   switch(requestType){
     case "normal": animationElement.innerHTML = suggestion;break;
     case "fixBug": viewDiffCode(activeCell, generateCompareCodesWrapper(codeFormat, suggestion));break;
