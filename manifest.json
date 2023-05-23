@@ -19,7 +19,7 @@
   },
   "content_scripts": [
     {
-      "matches": ["*://*/*"],
+      "matches": ["*://*.jupyter.org/*", "*://localhost:*/*", "*://127.0.0.1:*/*"],
       "js": ["content.js"],
       "css": ["styles.css"],
       "run_at": "document_end"
