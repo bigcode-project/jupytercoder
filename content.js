@@ -596,8 +596,10 @@ const generateCompareCodes = (oldCode, newCode) => {
 
       if(perInsertCode.length == 0){
         html.push(`<span style="color: red;">- ${oldLine}</span>`)
-        for(newCodeIndex ; newCodeIndex < newCodeAssistIndex; newCodeIndex ++) { // If there are multiple new lines of code, push them one by one for
-          perInsertCode.push(`<span style="color: green;">+ ${newCodeLine[newCodeIndex]}</span>`)
+        for(i ; i < newCodeAssistIndex; i ++) { // If there are multiple new lines of code, push them one by one for
+          if(i<newCodeLine.length){
+            perInsertCode.push(`<span style="color: green;">+ ${newCodeLine[i]}</span>`)
+          } 
         }
       }
 
