@@ -575,25 +575,30 @@ const generateCompareCodes = (oldCode, newCode) => {
       html.push(`<span style="color: green;">+ ${newLine}</span>`)
       newCodeIndex++
     }else{ // If it is completely different, it will be considered as a new code snippet and added directly above (green)
+      
+      // Define a new code pointer
       newCodeAssistIndex = newCodeIndex + 1
+      // Prepare to insert code with HTML
       perInsertCode = []
 
+      // Check which line of the new code is similar to the old one
       for(newCodeAssistIndex; newCodeAssistIndex < newCodeLine.length; newCodeAssistIndex++) {
         if(oldLine == newCodeLine[newCodeAssistIndex]){
-          for(newCodeIndex ; newCodeIndex < newCodeAssistIndex; newCodeIndex ++) { // If there are multiple new lines of code, push them one by one for
+          for(newCodeIndex ; newCodeIndex < newCodeAssistIndex; newCodeIndex ++) {
             perInsertCode.push(`<span style="color: green;">+ ${newCodeLine[newCodeIndex]}</span>`)
           }
           i--
           break
         }else if(compareCodeLines(oldLine, newCodeLine[newCodeIndex])){
           html.push(`<span style="color: red;">- ${oldLine}</span>`)
-          for(newCodeIndex ; newCodeIndex < newCodeAssistIndex; newCodeIndex ++) { // If there are multiple new lines of code, push them one by one for
+          for(newCodeIndex ; newCodeIndex < newCodeAssistIndex; newCodeIndex ++) {
             perInsertCode.push(`<span style="color: green;">+ ${newCodeLine[newCodeIndex]}</span>`)
           }
           break
         }
       }
 
+      // If no similar code is found in the new code
       if(perInsertCode.length == 0){
         html.push(`<span style="color: red;">- ${oldLine}</span>`)
         for(i ; i < newCodeAssistIndex; i ++) { // If there are multiple new lines of code, push them one by one for
