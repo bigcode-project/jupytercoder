@@ -499,7 +499,7 @@ const compareCodeLines = (codeLine1, codeLine2) => {
   if (codeLine1 == codeLine1){
     return true
   }
-  
+
   codeLine1 = codeLine1.toLowerCase();
   codeLine2 = codeLine2.toLowerCase();
 
@@ -541,8 +541,6 @@ const levenshteinDistanceDP = (str1, str2) => {
 
 
 const generateCompareCodes = (oldCode, newCode) => {
-  console.log(oldCode);
-  console.log(newCode);
   // Split the strings into lines and store them in separate arrays
   const oldCodeLine = oldCode.split('\n');
   const newCodeLine = newCode.split('\n');
@@ -775,7 +773,7 @@ const mainProcess = async () => {
   
   // Retrieve the content of the active cell 
   let code = await getCodeFormat(activeCell)
-  console.log("code",code);
+
   if (!code) return;
 
   if (activeCell) {
