@@ -605,7 +605,7 @@ const generateCompareCodes = (oldCode, newCode) => {
     }
   }
 
-  if(newCodeIndex < newCodeLine.length ){
+  if( newCodeIndex < newCodeLine.length ){
     for(newCodeIndex ; newCodeIndex < newCodeLine.length; newCodeIndex ++) {
       html.push(`<span style="color: green;">+ ${newCodeLine[newCodeIndex]}</span>`)
     }
