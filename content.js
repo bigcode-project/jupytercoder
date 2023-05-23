@@ -535,8 +535,11 @@ const levenshteinDistanceDP = (str1, str2) => {
   return dp[n];
 }
 
-
+// Due to the presence of a large number of invisible characters, replace them
+let invisibleCodeReg = /[\u200B-\u200D\uFEFF]/g
 const generateCompareCodes = (oldCode, newCode) => {
+  oldCode = oldCode.replace(invisibleCodeReg, "")
+  newCode = newCode.replace(invisibleCodeReg, "")
   // Split the strings into lines and store them in separate arrays
   const oldCodeLine = oldCode.split('\n');
   const newCodeLine = newCode.split('\n');
