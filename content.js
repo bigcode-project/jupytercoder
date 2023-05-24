@@ -455,7 +455,7 @@ function getCellContentTextRequiredForBigCode() {
 
   }
 
-  return code += "<jupyter_code>"
+  return code
 }
 
 
