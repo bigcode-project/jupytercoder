@@ -276,16 +276,18 @@ const getActiveCellPointerCode = (activeCell, cellIndex) => {
   // Get complete cells
   const fullCell = activeCell.parentElement.parentElement.parentElement.parentElement
 
-  const outputElement = fullCell.querySelector(`.${currctJupyterModel.requiredClassName.output}`);
+  const outputElement = fullCell.querySelectorAll(`.${currctJupyterModel.requiredClassName.output}`);
 
   if (outputElement) {
-    cellContent.push({
-      "content": outputElement.textContent,
-      "cellIndex": cellIndex,
-      "isCursor": false,
-      "type": "output",
-      "lineIndex": 0
-    })
+    outputElement.forEach(element => {
+      cellContent.push({
+        "content": element.textContent,
+        "cellIndex": cellIndex,
+        "isCursor": false,
+        "type": "output",
+        "lineIndex": 0
+      })
+    });
   }
   return cellContent
 }
@@ -428,7 +430,7 @@ function getBigcodeFormattPrefix(typeStr){
 // prompt required by bigcode
 function getCellContentTextRequiredForBigCode() {
   const context = getActiveContext()
-
+ 
   let code = "<start_jupyter>"
   let cellCode = getBigcodeFormattPrefix(context[0].type)
   
@@ -448,12 +450,12 @@ function getCellContentTextRequiredForBigCode() {
 
     if(lineInformation.cellIndex != nextLineInformation.cellIndex || lineInformation.type != nextLineInformation.type){
       code += cellCode + lineInformation.content
-      cellCode = getBigcodeFormattPrefix(nextLineInformation.type)
+      cellCode = getBigcodeFormattPrefix(lineInformation.type)
     }else{
       cellCode += lineInformation.content + "\n"
     }
 
-  }
+  } 
 
   return code
 }
@@ -474,19 +476,26 @@ function formatCodeAndBugIllustrate(activeCell){
 
   let code = "<commit_before>"
   let errorMessageIndex = -1
-  for(let index = 0; index <= codeLineInformation.length-1; index++){
+  for(let index = 0; index < codeLineInformation.length; index++){
     const lineInformation = codeLineInformation[index]
-
+    
     if(lineInformation.type == "output"){
-      errorMessageIndex = index
+      // Determine if the next one is also an output, there can only be two consecutive outputs at most
+      if (index < codeLineInformation.length - 1 && codeLineInformation[index+1].type == "output"){
+        errorMessageIndex = index + 1
+      }else{
+        errorMessageIndex = index
+      }
       break
     }   
 
     if(index == codeLineInformation.length - 1){
       code += lineInformation.content
       break
-    }else{
+    }else if(codeLineInformation[index+1].type != "output"){
       code += lineInformation.content + "\n"
+    }else{
+      code += lineInformation.content
     }
 
   }
@@ -495,21 +504,10 @@ function formatCodeAndBugIllustrate(activeCell){
     return ""
   }
 
+
   return `${code}<commit_msg>fix bug, ${parseErrorFullmessage(codeLineInformation[errorMessageIndex].content)}<commit_after>`
 }
 
-
-
-const compareCodeLines = (codeLine1, codeLine2) => {
-  codeLine1 = codeLine1.toLowerCase();
-  codeLine2 = codeLine2.toLowerCase();
-
-  const distance = levenshteinDistanceDP(codeLine1, codeLine2);
-
-  const similarityScore = 1 - distance / Math.max(codeLine1.length, codeLine2.length);
-
-  return similarityScore >= 0.8;
-}
 
 // Levenshtein distance, Obtain similarity based on distance
 const levenshteinDistanceDP = (str1, str2) => {
@@ -540,9 +538,24 @@ const levenshteinDistanceDP = (str1, str2) => {
   return dp[n];
 }
 
+
+const compareCodeLines = (codeLine1, codeLine2) => {
+  codeLine1 = codeLine1.toLowerCase();
+  codeLine2 = codeLine2.toLowerCase();
+
+  const distance = levenshteinDistanceDP(codeLine1, codeLine2);
+
+  const similarityScore = 1 - distance / Math.max(codeLine1.length, codeLine2.length);
+
+  return similarityScore >= 0.8;
+}
+
+
+
 // Due to the presence of a large number of invisible characters, replace them
 let invisibleCodeReg = /[\u200B-\u200D\uFEFF]/g
 const generateCompareCodes = (oldCode, newCode) => {
+
   oldCode = oldCode.replace(invisibleCodeReg, "")
   newCode = newCode.replace(invisibleCodeReg, "")
 
@@ -550,22 +563,24 @@ const generateCompareCodes = (oldCode, newCode) => {
   const oldCodeLine = oldCode.split('\n');
   const newCodeLine = newCode.split('\n');
 
-  if (oldCodeLine[oldCodeLine.length-1] == "" ) oldCodeLine.pop()
-  
+
   // Create an empty array to store the generated HTML
   let html = [];
   let newCodeIndex = 0
-  let newCodeAssistIndex = 0
 
   // Iterate over the lines and compare them
   for (let i = 0; i < oldCodeLine.length; i++) {
-    if(i >= oldCodeLine.length && newCodeIndex >= newCodeLine.length ){
+
+    if(newCodeIndex == newCodeLine.length){
+      for(i; i < oldCodeLine.length; i++){
+        html.push(`<span style="color: red;">- ${oldCodeLine[i]}</span>`)
+      }
       break;
     }
 
-    const oldLine = i < oldCodeLine.length ? oldCodeLine[i] : '';
-    const newLine = newCodeIndex < newCodeLine.length ? newCodeLine[newCodeIndex] : '';
-
+    const oldLine = oldCodeLine[i];
+    const newLine = newCodeLine[newCodeIndex];
+    
     // If the lines are the same, generate a gray span
     if (oldLine === newLine) {
       html.push(`<span style="color: #787878">= ${oldLine}</span>`);
@@ -574,47 +589,30 @@ const generateCompareCodes = (oldCode, newCode) => {
       html.push(`<span style="color: red;">- ${oldLine}</span>`)
       html.push(`<span style="color: green;">+ ${newLine}</span>`)
       newCodeIndex++
-    }else{ // If it is completely different, it will be considered as a new code snippet and added directly above (green)
-      
-      // Define a new code pointer
-      newCodeAssistIndex = newCodeIndex + 1
-      // Prepare to insert code with HTML
-      perInsertCode = []
+    }else{ 
+      // If it is completely different, it will be considered as a new code snippet and added directly above (green)
 
+      let newCodeAssistIndex = newCodeIndex
+      // Prepare to insert code with HTML
+      const perInsertCode = []
+
+      let isAddedOldCode = false
       // Check which line of the new code is similar to the old one
       for(newCodeAssistIndex; newCodeAssistIndex < newCodeLine.length; newCodeAssistIndex++) {
-        if(oldLine == newCodeLine[newCodeAssistIndex]){
-          for(newCodeIndex ; newCodeIndex < newCodeAssistIndex; newCodeIndex ++) {
+        if(oldLine == newCodeLine[newCodeAssistIndex] || compareCodeLines(oldLine, newCodeLine[newCodeIndex])){
+          for(newCodeIndex; newCodeIndex < newCodeAssistIndex; newCodeIndex++){
             perInsertCode.push(`<span style="color: green;">+ ${newCodeLine[newCodeIndex]}</span>`)
           }
-          i--
-          break
-        }else if(compareCodeLines(oldLine, newCodeLine[newCodeIndex])){
-          html.push(`<span style="color: red;">- ${oldLine}</span>`)
-          for(newCodeIndex ; newCodeIndex < newCodeAssistIndex; newCodeIndex ++) {
-            perInsertCode.push(`<span style="color: green;">+ ${newCodeLine[newCodeIndex]}</span>`)
+        }else{
+          if (i < oldCodeLine.length){
+            perInsertCode.push(`<span style="color: red;">- ${oldCodeLine[i++]}</span>`)
+            isAddedOldCode = true
           }
-          break
+          perInsertCode.push(`<span style="color: green;">+ ${newCodeLine[newCodeIndex++]}</span>`)
         }
       }
-
-      // If no similar code is found in the new code
-      if(perInsertCode.length == 0){
-        html.push(`<span style="color: red;">- ${oldLine}</span>`)
-        for(i ; i < newCodeAssistIndex; i ++) { // If there are multiple new lines of code, push them one by one for
-          if(i<newCodeLine.length){
-            perInsertCode.push(`<span style="color: green;">+ ${newCodeLine[i]}</span>`)
-          } 
-        }
-      }
-
+      if (isAddedOldCode) i--
       html = [...html, ...perInsertCode]
-    }
-  }
-
-  if( newCodeIndex < newCodeLine.length ){
-    for(newCodeIndex ; newCodeIndex < newCodeLine.length; newCodeIndex ++) {
-      html.push(`<span style="color: green;">+ ${newCodeLine[newCodeIndex]}</span>`)
     }
   }
 
@@ -624,6 +622,7 @@ const generateCompareCodes = (oldCode, newCode) => {
 
 // Different HTML for generating code
 const generateCompareCodesWrapper = (prompt, result)=>{
+
   const preCodeMesageSplit = prompt.split("<commit_msg>")
   const preCode = preCodeMesageSplit[0].slice(15)
   return generateCompareCodes(preCode, result)
