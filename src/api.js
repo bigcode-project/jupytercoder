@@ -6,18 +6,18 @@ const api = {
 
 const removeJupyterOutput = (suggestion) => {
     suggestion = suggestion.replace("# -*- coding: utf-8 -*-\n\n", "")
-    const jupyterOutput = '<jupyter_output>';
+    let outPutIndex = suggestion.indexOf('<jupyter_output>')
+
+    if (outPutIndex != -1){
+        suggestion = suggestion.slice(0, outPutIndex)
+    }
 
     const unnecessaryTag = '<|endoftext|>'
     const unnecessaryTagIndex = suggestion.indexOf(unnecessaryTag)
 
-    if (suggestion.endsWith(jupyterOutput)) {
-        let removedOutpoutSuggestion = suggestion.slice(0, -jupyterOutput.length);
-        return unnecessaryTagIndex == -1 ? removedOutpoutSuggestion : removedOutpoutSuggestion.slice(0, unnecessaryTagIndex)
-    }
-
     return unnecessaryTagIndex == -1 ? suggestion : suggestion.slice(0, unnecessaryTagIndex)
 }
+
 
 const removeOpenaiOutput = (suggestion) => {
     let outPutIndex = suggestion.indexOf("\n\n§ Output")
