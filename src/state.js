@@ -9,6 +9,7 @@ const state = {
     isRequestSuccessful: false,
     // Code to be filled in after request completion
     codeToFill: "",
+    requestType: "",
 }
 
 window.state = state

@@ -130,8 +130,21 @@
       if (state.isRequestInProgress || state.isRequestSuccessful) {
         return
       }
+
+      state.requestType = "normal"
       await mainProcess()
+
+    }else if(event.ctrlKey && event.code === 'Backquote'){
+       // Block default events
+       event.preventDefault();
+
+       if (state.isRequestInProgress || state.isRequestSuccessful) {
+         return
+       }
+       state.requestType = "fixBug"
+       await mainProcess()
     }
+
   }
 
   const montedEventListener = () => {
