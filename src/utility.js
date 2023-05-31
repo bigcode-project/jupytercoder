@@ -182,7 +182,7 @@ const getActiveContext = (currctJupyterModel) => {
             context = [...context, ...cellContent]
         }
     }
-    console.log(context);
+    
     return context
 }
 
