@@ -100,7 +100,7 @@
   }
 
   // Adds an event listener for filling in code after the request is completed
-  const addFillCodeKeyListener = (event) => {
+  const fillCodeKeyListener = (event) => {
     if (event.ctrlKey && !state.isRequestInProgress && state.isRequestSuccessful) {
       event.preventDefault();
 
@@ -121,24 +121,22 @@
     }
   };
 
+  const requestCodeKeyListener = async (event) => {
+    // Check if the Ctrl + Space keys were pressed
+    if (event.ctrlKey && event.code === 'Space') {
+      // Block default events
+      event.preventDefault();
+
+      if (state.isRequestInProgress || state.isRequestSuccessful) {
+        return
+      }
+      await mainProcess()
+    }
+  }
 
   const montedEventListener = () => {
-    document.addEventListener('keydown', async (event) => {
-      // Check if the Ctrl + Space keys were pressed
-      if (event.ctrlKey && event.code === 'Space') {
-        // Block default events
-        event.preventDefault();
-
-        if (state.isRequestInProgress || state.isRequestSuccessful) {
-          return
-        }
-
-        await mainProcess()
-
-      }
-
-    });
-    document.addEventListener('keydown', addFillCodeKeyListener);
+    document.addEventListener('keydown', requestCodeKeyListener);
+    document.addEventListener('keydown', fillCodeKeyListener);
   }
 
 
@@ -146,7 +144,7 @@
   if (document.querySelector('body.notebook_app')) {
     montedEventListener()
     state.currctJupyterModel = notebookModel
-    
+
   } else {
     // Create a new MutationObserver, This object will listen for changes in elements in the DOM and execute callback functions when changes occur
     const bodyObserver = new MutationObserver(function (mutations) {
