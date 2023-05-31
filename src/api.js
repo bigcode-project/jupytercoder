@@ -72,7 +72,8 @@ api.sendToBigcode = async (code, url, token) => {
         inputs: prompt,
         stream: false,
         parameters: {
-            return_full_text: false
+            return_full_text: false,
+            stop: ["<jupyter_output>"]
         }
     }
 
