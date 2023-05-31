@@ -1,18 +1,26 @@
 const utility = {
     /*
-        Start requested animation
+       Get Context Code text
 
         Params:
-        activeTextarea: Textarea in active cell 
+            activeCell: The cell dom that the user is operating on
+            checkedMode: openai or bigcode
+            currctJupyterModel: lab or notebook
 
-        Returns: list, len == 3 
-        0. animationInterval: Animation interval, can be cleared using the 'clearInterval' function
-        1. animationElement: Animation dom element
-        2. activeCellElement: The parent dom of the current cell
-
+        Returns: str
+            Returns the corresponding formatting code based on the request mode selected by the current user
     */
+   
     getCellContentText(activeCell, checkedMode, currctJupyterModel) { },
-    insertSuggestion(suggestion) { },
+
+    /*
+        Insert the code after the request
+
+        Params:
+            suggestion: code after the request
+            activeRequestTextarea: The textarea dom that the user is operating on
+    */
+    insertSuggestion(suggestion, activeRequestTextarea) { },
 }
 
 
