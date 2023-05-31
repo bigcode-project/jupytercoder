@@ -177,7 +177,7 @@ const getActiveContext = (currctJupyterModel) => {
         if (i == activeCellIndex) {
             const activeCellContent = getActiveCellPointerCode(activeCell, i, currctJupyterModel)
             context = [...context, ...activeCellContent]
-        } else if (i <= activeCellIndex) {
+        } else if (i < activeCellIndex) {
             const cellContent = getCellCode(cellElements[i], i, currctJupyterModel)
             context = [...context, ...cellContent]
         }
