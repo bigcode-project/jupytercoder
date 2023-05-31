@@ -182,7 +182,7 @@ const getActiveContext = (currctJupyterModel) => {
             context = [...context, ...cellContent]
         }
     }
-    
+
     return context
 }
 
@@ -220,6 +220,7 @@ function getCellContentTextRequiredForBigCode(currctJupyterModel) {
     for (let index = 0; index < context.length; index++) {
         const lineInformation = context[index]
 
+        // If output is required, comment out this line
         if (lineInformation.type == "output") continue
 
         if (index == context.length - 1 || lineInformation.isCursor) {
