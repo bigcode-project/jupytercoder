@@ -1,3 +1,5 @@
+// Call Link: getCellContentText -> getCellContentTextRequiredForBigCode/getCellContentTextRequiredForOpenAI -> getActiveContext -> getActiveCellPointerCode/getCellCode
+
 const utility = {
     /*
        Get Context Code text
@@ -10,7 +12,7 @@ const utility = {
         Returns: str
             Returns the corresponding formatting code based on the request mode selected by the current user
     */
-   
+
     getCellContentText(activeCell, checkedMode, currctJupyterModel) { },
 
     /*
@@ -25,9 +27,64 @@ const utility = {
 
 
 
-const getActiveCellPointerCode = (activeCell) => {
-    let leftContext = ""
-    let rightContext = ""
+
+const bigcodeFormattPrefixMap = {
+    "code": "<jupyter_code>",
+    "text": "<jupyter_text>",
+    "output": "<jupyter_output>"
+}
+
+
+const getCellCode = (cellElement, cellIndex, currctJupyterModel) => {
+    const cellContent = []
+
+    if (cellElement.classList.contains(currctJupyterModel.requiredClassName.verify)) {
+        const codeLines = cellElement.querySelectorAll('.CodeMirror-line')
+
+        for (let i = 0; i < codeLines.length; i++) {
+            cellContent.push({
+                "content": codeLines[i].textContent,
+                "cellIndex": cellIndex,
+                "isCursor": false,
+                "type": "code",
+                "lineIndex": i
+            })
+        }
+
+        const outputElement = cellElement.querySelector(`.${currctJupyterModel.requiredClassName.output}`);
+
+        if (outputElement && outputElement.textContent) {
+            cellContent.push({
+                "content": outputElement.textContent,
+                "cellIndex": cellIndex,
+                "isCursor": false,
+                "type": "output",
+                "lineIndex": 0
+            })
+        }
+
+    } else if (cellElement.classList.contains(currctJupyterModel.requiredClassName.text)) {
+        const textLines = cellElement.querySelectorAll(`.${currctJupyterModel.requiredClassName.textOutput} p`)
+
+        for (let i = 0; i < textLines.length; i++) {
+            cellContent.push({
+                "content": textLines[i].textContent,
+                "cellIndex": cellIndex,
+                "isCursor": false,
+                "type": "text",
+                "lineIndex": i
+            })
+        }
+    } else {
+        return []
+    }
+
+    return cellContent;
+}
+
+
+const getActiveCellPointerCode = (activeCell, cellIndex, currctJupyterModel) => {
+    let cellContent = []
 
     // get cursor element
     const cursorElement = activeCell.querySelector('div.CodeMirror-cursor')
@@ -51,129 +108,144 @@ const getActiveCellPointerCode = (activeCell) => {
     }
 
     for (let i = 0; i < linesElement.length; i++) {
-
-        if (i < lineIndex) {
-            leftContext += linesElement[i].textContent + "\n"
-        } else if (i == lineIndex) {
-            leftContext += linesElement[i].textContent
+        if (i == lineIndex) {
+            cellContent.push({
+                "content": linesElement[i].textContent,
+                "cellIndex": cellIndex,
+                "isCursor": true,
+                "type": "code",
+                "lineIndex": i
+            })
         } else {
-            if (i == linesElement.length - 1) {
-                rightContext += linesElement[i].textContent
-            } else {
-                rightContext += linesElement[i].textContent + "\n"
-            }
+            cellContent.push({
+                "content": linesElement[i].textContent,
+                "cellIndex": cellIndex,
+                "isCursor": false,
+                "type": "code",
+                "lineIndex": i
+            })
         }
-
     }
 
-    return [leftContext, rightContext]
-}
+    // Get complete cells
+    const fullCell = activeCell.parentElement.parentElement.parentElement.parentElement
 
-function extractTextFromCodeCell(cell) {
-    const codeMirrorLines = cell.querySelectorAll('.CodeMirror-code pre');
+    const outputElement = fullCell.querySelectorAll(`.${currctJupyterModel.requiredClassName.output}`);
 
-    const content = [];
-
-    codeMirrorLines.forEach((line) => {
-        content.push(line.textContent);
-    });
-    const content_str = content.join('\n');
-
-    return content_str;
-}
-
-function extractTextFromTextCell(cell, currctJupyterModel) {
-    const codeMirrorLines = cell.querySelectorAll(`.${currctJupyterModel.requiredClassName.textOutput} p`);
-
-    const content = [];
-
-    codeMirrorLines.forEach((line) => {
-        content.push(line.textContent);
-    });
-    const content_str = content.join('\n');
-
-    return content_str;
+    if (outputElement) {
+        outputElement.forEach(element => {
+            cellContent.push({
+                "content": element.textContent,
+                "cellIndex": cellIndex,
+                "isCursor": false,
+                "type": "output",
+                "lineIndex": 0
+            })
+        });
+    }
+    return cellContent
 }
 
 
-function getCellContentTextRequiredForOpenAI(activeCell, currctJupyterModel) {
+/*
+    Get Active Cell Context
+
+    Params:
+        currctJupyterModel: refer to content.js
+
+    Returns:
+        Example: [
+            {cellIndex: 0, content: "# load Digits Dataset from sklearn", isCursor : false, lineIndex: 0, type: "code"}
+            {cellIndex: 0, content: "from sklearn.datasets import load_digits", isCursor : false, lineIndex: 1, type: "code"}
+            {cellIndex: 0, content: "", isCursor : false, lineIndex: 2, type: "code"}
+            {cellIndex: 1, content: "Print to show there are 1797 images (8 by 8 images for a dimensionality of 64)", isCursor : false, lineIndex: 0, type: "text"}
+            {cellIndex: 1, content: "Print to show there are 1797 labels (integers from 0–9)", isCursor : false, lineIndex: 1, type: "text"}
+            {cellIndex: 2, content: "# print the shape of the images and labels", isCursor : false, lineIndex: 0, type: "code"}
+            {cellIndex: 2, content: "", isCursor : true, lineIndex: 1, type: "code"}
+        ]
+
+*/
+const getActiveContext = (currctJupyterModel) => {
+    // Obtain the current input box (cell) from the Textarea of the current input box
+    const activeCell = document.activeElement.parentElement.parentElement;
+
     const cellElements = Array.from(document.querySelectorAll(`.${currctJupyterModel.requiredClassName.cell}`));
     const activeCellIndex = cellElements.findIndex(cell => cell.contains(activeCell));
-    // Check if there are at least 3 cells before the active cell
-    let codeContent = "";
+    let context = []
 
-    // LeftContext refers to the left side of the pointer, and vice versa, If both are null, it is determined that the pointer is not at the far right
-    const [leftContext, rightContext] = getActiveCellPointerCode(activeCell)
-
-    if (!leftContext) {
-        return null
-    }
-
-    // Iterate through the last 3 cells before the active cell
-    const startIndex = 0;
-    for (let i = startIndex; i <= activeCellIndex; i++) {
+    for (let i = 0; i < cellElements.length; i++) {
         if (i == activeCellIndex) {
-            codeContent += leftContext
+            const activeCellContent = getActiveCellPointerCode(activeCell, i, currctJupyterModel)
+            context = [...context, ...activeCellContent]
+        } else if (i <= activeCellIndex) {
+            const cellContent = getCellCode(cellElements[i], i, currctJupyterModel)
+            context = [...context, ...cellContent]
+        }
+    }
+    console.log(context);
+    return context
+}
+
+
+
+
+const getCellContentTextRequiredForOpenAI = (currctJupyterModel) => {
+    const context = getActiveContext(currctJupyterModel)
+
+    let prompt = ""
+
+    for (let index = 0; index < context.length; index++) {
+        const lineInformation = context[index]
+
+        if (index == context.length - 1 || lineInformation.isCursor) {
+            prompt += lineInformation.content
             break
+        }
+
+        if (lineInformation.type == "code") {
+            prompt += lineInformation.content + "\n"
+        }
+    }
+
+    return prompt
+}
+
+
+function getCellContentTextRequiredForBigCode(currctJupyterModel) {
+    const context = getActiveContext(currctJupyterModel)
+
+    let prompt = "<start_jupyter>"
+    let cellCodeText = ""
+
+    for (let index = 0; index < context.length; index++) {
+        const lineInformation = context[index]
+
+        if (lineInformation.type == "output") continue
+
+        if (index == context.length - 1 || lineInformation.isCursor) {
+            prompt += bigcodeFormattPrefixMap[lineInformation.type] + cellCodeText + lineInformation.content
+            break
+        }
+
+        const nextLineInformation = context[index + 1]
+
+        if (lineInformation.cellIndex != nextLineInformation.cellIndex || lineInformation.type != nextLineInformation.type) {
+            prompt += bigcodeFormattPrefixMap[lineInformation.type] + cellCodeText + lineInformation.content
+            cellCodeText = ""
         } else {
-            const cellElement = cellElements[i];
-            if (cellElement.classList.contains(currctJupyterModel.requiredClassName.verify)) {
-                codeContent += extractTextFromTextCell(cellElement, currctJupyterModel);
-            }
+            cellCodeText += lineInformation.content + "\n"
         }
-        codeContent += "\n"
+
     }
 
-    return codeContent;
+    return prompt
 }
 
 
-function getCellContentTextRequiredForBigCode(activeCell, currctJupyterModel) {
-    const cellElements = Array.from(document.querySelectorAll(`.${currctJupyterModel.requiredClassName.cell}`));
-    const activeCellIndex = cellElements.findIndex(cell => cell.contains(activeCell));
-    // Check if there are at least 3 cells before the active cell
-    let combinedContent = "<start_jupyter>";
-
-    // in active cell, LeftContext refers to the left side of the pointer, and vice versa, If both are null, it is determined that the pointer is not at the far right
-    const [leftContext, rightContext] = getActiveCellPointerCode(activeCell)
-
-    if (!leftContext && !rightContext) {
-        return null
-    }
-
-
-    TODO: "The following code needs to add 'leftContext' and 'rightContext'"
-    // Iterate through the last 3 cells before the active cell
-    const startIndex = activeCellIndex - 3 < 0 ? 0 : activeCellIndex - 3;
-
-    for (let i = startIndex; i <= activeCellIndex; i++) {
-        const cellElement = cellElements[i];
-
-        if (cellElement.classList.contains(currctJupyterModel.requiredClassName.verify)) {
-            const code = extractTextFromCodeCell(cellElement);
-
-            combinedContent += `<jupyter_code>${code}`;
-            const outputElement = cellElement.querySelector(`.${currctJupyterModel.requiredClassName.output}`);
-            if (outputElement) {
-                if (i !== activeCellIndex) {
-                    combinedContent += `<jupyter_output>`;
-                    combinedContent += outputElement.textContent;
-                }
-            }
-        } else if (cellElement.classList.contains(currctJupyterModel.requiredClassName.text)) {
-            const text = extractTextFromTextCell(cellElement, currctJupyterModel);
-            combinedContent += `<jupyter_text>${text}`;
-        }
-    }
-
-    return combinedContent;
-}
-
-
-utility.getCellContentText = (activeCell, checkedMode, currctJupyterModel) => {
+utility.getCellContentText = (checkedMode, currctJupyterModel) => {
     switch (checkedMode) {
-        case "openaiApiKey": return getCellContentTextRequiredForOpenAI(activeCell, currctJupyterModel);
-        case "otherService": return getCellContentTextRequiredForBigCode(activeCell, currctJupyterModel)
+        case "OpenAI": return getCellContentTextRequiredForOpenAI(currctJupyterModel);
+        case "BigCode": return getCellContentTextRequiredForBigCode(currctJupyterModel)
     }
 }
 

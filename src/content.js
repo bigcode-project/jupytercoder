@@ -36,11 +36,13 @@
     const activeCell = activeTextarea.parentElement.parentElement
 
     const checkedMode = await preferences.getCheckedMode()
+    console.log("checkedMode",checkedMode);
     const currctJupyterModel = state.currctJupyterModel
 
     // Retrieve the content of the active cell 
-    const code = utility.getCellContentText(activeCell, checkedMode, currctJupyterModel);
+    const code = utility.getCellContentText(checkedMode, currctJupyterModel);
 
+    console.log(code);
     if (!code) return;
 
     if (activeCell) {
@@ -52,14 +54,16 @@
       // Deal with a series of problems such as network
       try {
 
-        switch (checkedMode) {
-          case "openaiApiKey":
+        switch (checkedMode) { 
+          case "OpenAI":
             const apikey = await preferences.getOpenAIKey()
+            console.log(apikey);
             const GPTModelType = await preferences.getGPTModelType()
+            console.log(GPTModelType);
             suggestion = await api.sendToOpenAI(code, apikey, GPTModelType)
             break;
 
-          case "otherService":
+          case "BigCode":
             const bigCodeUrl = await preferences.getBigcodeServiceUrl()
             const huggingfaceAccessToken = await preferences.getHuggingfaceApiKey()
             suggestion = await api.sendToBigcode(code, bigCodeUrl, huggingfaceAccessToken)
@@ -131,20 +135,9 @@
         return
       }
 
-      state.requestType = "normal"
       await mainProcess()
 
-    }else if(event.ctrlKey && event.code === 'Backquote'){
-       // Block default events
-       event.preventDefault();
-
-       if (state.isRequestInProgress || state.isRequestSuccessful) {
-         return
-       }
-       state.requestType = "fixBug"
-       await mainProcess()
     }
-
   }
 
   const montedEventListener = () => {

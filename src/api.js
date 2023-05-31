@@ -20,7 +20,9 @@ const removeJupyterOutput = (suggestion) => {
 
 
 const removeOpenaiOutput = (suggestion) => {
+    suggestion = suggestion.replace(/\u200B/g, '')
     let outPutIndex = suggestion.indexOf("\n\n§ Output")
+    
 
     if (outPutIndex == -1) {
         let outPutIndex = suggestion.indexOf("\n\n# Output")

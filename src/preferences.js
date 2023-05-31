@@ -14,8 +14,8 @@ const preferences = {
 
 preferences.getOpenAIKey = async () => {
     return new Promise((resolve) => {
-        chrome.runtime.sendMessage({ type: "getApiKey" }, (response) => {
-            resolve(response.apiKey);
+        chrome.runtime.sendMessage({ type: "getOpenAIKey" }, (response) => {
+            resolve(response.openAIKey);
         });
     });
 }
@@ -31,7 +31,7 @@ preferences.getGPTModelType = async () => {
 preferences.getBigcodeServiceUrl = async () => {
     return new Promise((resolve) => {
         chrome.runtime.sendMessage({ type: "getBigcodeServiceUrl" }, (response) => {
-            resolve(response.otherServiceUrl);
+            resolve(response.bigcodeServiceUrl);
         });
     });
 }
@@ -39,7 +39,7 @@ preferences.getBigcodeServiceUrl = async () => {
 preferences.getCheckedMode = async () => {
     return new Promise((resolve) => {
         chrome.runtime.sendMessage({ type: "getCheckedMode" }, (response) => {
-            resolve(response.checked);
+            resolve(response.checkedMode);
         });
     });
 }
@@ -47,8 +47,8 @@ preferences.getCheckedMode = async () => {
 
 preferences.getHuggingfaceApiKey = async () => {
     return new Promise((resolve) => {
-        chrome.runtime.sendMessage({ type: "getHuggingfaceApiKey" }, (response) => {
-            resolve(response.huggingfaceApiKey)
+        chrome.runtime.sendMessage({ type: "getHuggingfaceAccessToken" }, (response) => {
+            resolve(response.huggingfaceAccessToken)
         })
     })
 }
