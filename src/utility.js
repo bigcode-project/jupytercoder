@@ -23,7 +23,7 @@ const utility = {
             activeRequestTextarea: The textarea dom that the user is operating on
     */
     insertSuggestion(suggestion, activeRequestTextarea) { },
-    generateCompareCodes(oldcode, newcode) { },
+    insertSuggestionFixBug(codeToFill, activeRequestTextarea, currctJupyterModel) { },
     
 }
 
@@ -324,7 +324,7 @@ const compareCodeLines = (codeLine1, codeLine2) => {
 
 // Due to the presence of a large number of invisible characters, replace them
 let invisibleCodeReg = /[\u200B-\u200D\uFEFF]/g
-utility.generateCompareCodes = (oldCode, newCode) => {
+const generateCompareCodes = (oldCode, newCode) => {
 
     oldCode = oldCode.replace(invisibleCodeReg, "")
     newCode = newCode.replace(invisibleCodeReg, "")
@@ -444,6 +444,64 @@ utility.getCodeFormat = (checkedMode, currctJupyterModel, requestType) => {
         case "fixBug": return formatCodeAndBugIllustrate(currctJupyterModel);
         default: return ""
     }
+}
+
+const viewDiffCode = (html, activeRequestTextarea) => {
+    // disableCode(activeRequestTextarea)
+    const activeCell = activeRequestTextarea.parentElement.parentElement;
+
+    // Due to the need to hide user code, the previous preview logic cannot be used
+    const codeMirrorCode = activeCell.querySelector(".CodeMirror-code")
+    const codeMirrorCodeLine = document.createElement('pre');
+    codeMirrorCodeLine.classList.add("CodeMirror-line")
+
+    codeMirrorCodeLine.innerHTML = html
+    codeMirrorCode.appendChild(codeMirrorCodeLine)
+}
+
+
+const generateCompareCodesWrapper = (prompt, result) => {
+    const preCodeMesageSplit = prompt.split("<commit_msg>")
+    const preCode = preCodeMesageSplit[0].slice(15)
+    return generateCompareCodes(preCode, result)
+}
+
+utility.viewCodeResult = (suggestion, animationElement, codeFormat, requestType, activeRequestTextarea) => {
+    switch (requestType) {
+        case "normal": animationElement.innerHTML = suggestion; break;
+        case "fixBug": viewDiffCode(generateCompareCodesWrapper(codeFormat, suggestion), activeRequestTextarea); break;
+    }
+}
+
+const simulateUserPressingBackspace = (activeRequestTextarea) => {
+    if (activeRequestTextarea) {
+        let event = new KeyboardEvent("keydown", { key: "Backspace", keyCode: 8, which: 8, code: "Backspace" });
+        activeRequestTextarea.dispatchEvent(event);
+    }
+}
+
+utility.insertSuggestionFixBug = (suggestion, activeRequestTextarea, currctJupyterModel) => {
+    // Focus the textarea, otherwise, it is not possible to insert the suggestion using the Tab key from another location
+    activeRequestTextarea.focus();
+    const cellContent = getActiveCellPointerCode(activeRequestTextarea.parentElement.parentElement, 0, currctJupyterModel)
+
+    for (let index = 0; index < cellContent.length; index++) {
+        for (let j = 0; j < cellContent[index].content.length; j++) {
+            simulateUserPressingBackspace(activeRequestTextarea)
+        }
+    }
+    // enableCode(activeRequestTextarea)
+
+    activeRequestTextarea.value = suggestion;
+
+    // Trigger an input event on the textarea to update the CodeMirror instance
+    const event = new Event('input', { bubbles: true, cancelable: true });
+    activeRequestTextarea.dispatchEvent(event);
+
+    // Trigger a keydown event with Tab key to perform auto-indentation
+    const tabEvent = new KeyboardEvent('keydown', { key: 'Tab' });
+    activeRequestTextarea.dispatchEvent(tabEvent);
+
 }
 
 window.utility = utility

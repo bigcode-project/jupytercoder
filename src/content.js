@@ -95,8 +95,7 @@
         state.isRequestInProgress = false
         state.codeToFill = suggestion
 
-        // Replace the content of the text animation box with code
-        animationElement.innerHTML = suggestion
+        utility.viewCodeResult(suggestion, animationElement, code, state.requestType, activeTextarea)
       }
     }
   }
@@ -117,9 +116,9 @@
 
         // request type "normal" or "fixBug"
         if (state.requestType == "normal") {
-          utility.insertSuggestion(codeToFill, state.activeRequestTextarea);
+          utility.insertSuggestion(state.codeToFill, state.activeRequestTextarea);
         } else if (state.requestType == "fixBug") {
-          utility.insertSuggestionFixBug(codeToFill, state.activeRequestTextarea, static_variable.currctJupyterModel)
+          utility.insertSuggestionFixBug(state.codeToFill, state.activeRequestTextarea, state.currctJupyterModel)
         }
       }
 

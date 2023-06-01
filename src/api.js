@@ -4,7 +4,7 @@ const api = {
 };
 
 
-const removeJupyterOutput = (suggestion) => {
+const cleanUpBigcodeOutput = (suggestion) => {
     suggestion = suggestion.replace("# -*- coding: utf-8 -*-\n\n", "")
     let outPutIndex = suggestion.indexOf('<jupyter_output>')
 
@@ -19,7 +19,7 @@ const removeJupyterOutput = (suggestion) => {
 }
 
 
-const removeOpenaiOutput = (suggestion) => {
+const cleanUpOpenaiOutput = (suggestion) => {
     suggestion = suggestion.replace(/\u200B/g, '')
     let outPutIndex = suggestion.indexOf("\n\n§ Output")
     
@@ -58,7 +58,7 @@ api.sendToOpenAI = async (prompt, apiKey, modelType) => {
 
     const data = await response.json();
 
-    return data.choices && data.choices[0] ? removeOpenaiOutput(data.choices[0].text) : ""
+    return data.choices && data.choices[0] ? cleanUpOpenaiOutput(data.choices[0].text) : ""
 }
 
 
@@ -91,7 +91,7 @@ api.sendToBigcode = async (code, url, token) => {
 
     const data = await response.json();
 
-    return data[0] ? removeJupyterOutput(data[0].generated_text) : ""
+    return data[0] ? cleanUpBigcodeOutput(data[0].generated_text) : ""
 }
 
 
