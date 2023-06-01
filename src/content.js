@@ -120,6 +120,7 @@
         } else if (state.requestType == "fixBug") {
           utility.insertSuggestionFixBug(state.codeToFill, state.activeRequestTextarea, state.currctJupyterModel)
         }
+        
       }
 
       // Reset the request successful flag

@@ -447,9 +447,9 @@ utility.getCodeFormat = (checkedMode, currctJupyterModel, requestType) => {
 }
 
 const viewDiffCode = (html, activeRequestTextarea) => {
-    // disableCode(activeRequestTextarea)
+    disableCellCode(activeRequestTextarea)
     const activeCell = activeRequestTextarea.parentElement.parentElement;
-
+  
     // Due to the need to hide user code, the previous preview logic cannot be used
     const codeMirrorCode = activeCell.querySelector(".CodeMirror-code")
     const codeMirrorCodeLine = document.createElement('pre');
@@ -480,6 +480,25 @@ const simulateUserPressingBackspace = (activeRequestTextarea) => {
     }
 }
 
+
+// Hide all code for the active cell
+const disableCellCode = (textarea) => {
+    const activeCell = textarea.parentElement.parentElement
+    const codeMirrorLines = activeCell.querySelectorAll('.CodeMirror-code pre');
+    for (let i = 0; i < codeMirrorLines.length; i++) {
+        codeMirrorLines[i].style.display = "none"
+    }
+}
+
+// Restore all code that hides the current cell
+const enableCellCode = (textarea) => {
+    const activeCell = textarea.parentElement.parentElement
+    const codeMirrorLines = activeCell.querySelectorAll('.CodeMirror-code pre');
+    for (let i = 0; i < codeMirrorLines.length; i++) {
+        codeMirrorLines[i].style.display = "block"
+    }
+}
+
 utility.insertSuggestionFixBug = (suggestion, activeRequestTextarea, currctJupyterModel) => {
     // Focus the textarea, otherwise, it is not possible to insert the suggestion using the Tab key from another location
     activeRequestTextarea.focus();
@@ -490,7 +509,7 @@ utility.insertSuggestionFixBug = (suggestion, activeRequestTextarea, currctJupyt
             simulateUserPressingBackspace(activeRequestTextarea)
         }
     }
-    // enableCode(activeRequestTextarea)
+    enableCode(activeRequestTextarea)
 
     activeRequestTextarea.value = suggestion;
 
