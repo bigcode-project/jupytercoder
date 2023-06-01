@@ -43,10 +43,12 @@
     }
 
     const currctJupyterModel = state.currctJupyterModel
-
+    const requestType =  state.requestType
+    console.log(requestType);
     // Retrieve the content of the active cell 
-    const [code, isLastLine] = utility.getCellContentText(checkedMode, currctJupyterModel);
+    const [code, isLastLine] = utility.getCodeFormat(checkedMode, currctJupyterModel, requestType);
 
+    console.log(code);
     if (!code) return;
 
     if (activeCell) {
@@ -98,7 +100,7 @@
         state.isRequestInProgress = false
         state.codeToFill = suggestion
 
-        utility.viewCodeResult(suggestion, animationElement, code, state.requestType, activeTextarea)
+        utility.viewCodeResult(suggestion, animationElement, code, requestType, activeTextarea)
       }
     }
   }

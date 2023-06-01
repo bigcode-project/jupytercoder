@@ -470,8 +470,8 @@ const formatCodeAndBugIllustrate = (currctJupyterModel) => {
         return ""
     }
 
-
-    return `${code}<commit_msg>fix bug, ${parseErrorFullmessage(codeLineInformation[errorMessageIndex].content)}<commit_after>`
+    // Unified return of results with method 'getCellContentText', reduce code logic
+    return [`${code}<commit_msg>fix bug, ${parseErrorFullmessage(codeLineInformation[errorMessageIndex].content)}<commit_after>`, true]
 }
 
 
@@ -547,7 +547,7 @@ utility.insertSuggestionFixBug = (suggestion, activeRequestTextarea, currctJupyt
             simulateUserPressingBackspace(activeRequestTextarea)
         }
     }
-    enableCode(activeRequestTextarea)
+    enableCellCode(activeRequestTextarea)
 
     activeRequestTextarea.value = suggestion;
 
