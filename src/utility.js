@@ -562,7 +562,7 @@ utility.enableCellCode = (textarea) => {
 utility.insertSuggestionFixBug = (suggestion, activeRequestTextarea, currctJupyterModel) => {
     // Focus the textarea, otherwise, it is not possible to insert the suggestion using the Tab key from another location
     activeRequestTextarea.focus();
-    const cellContent = getActiveCellPointerCode(activeRequestTextarea.parentElement.parentElement, 0, currctJupyterModel)
+    const [cellContent, cursorAtEndInLine] = getActiveCellPointerCode(activeRequestTextarea.parentElement.parentElement, 0, currctJupyterModel)
 
     for (let index = 0; index < cellContent.length; index++) {
         for (let j = 0; j < cellContent[index].content.length; j++) {
