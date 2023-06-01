@@ -40,7 +40,7 @@
     const currctJupyterModel = state.currctJupyterModel
 
     // Retrieve the content of the active cell 
-    const code = utility.getCellContentText(checkedMode, currctJupyterModel);
+    const [code, isLastLine]= utility.getCellContentText(checkedMode, currctJupyterModel);
 
     if (!code) return;
 
@@ -57,16 +57,15 @@
           case "OpenAI":
             const apikey = await preferences.getOpenAIKey()
             const GPTModelType = await preferences.getGPTModelType()
-            suggestion = await api.sendToOpenAI(code, apikey, GPTModelType)
+            suggestion = await api.sendToOpenAI(code, apikey, GPTModelType, isLastLine)
             break;
 
           case "BigCode":
             const bigCodeUrl = await preferences.getBigcodeServiceUrl()
             const huggingfaceAccessToken = await preferences.getHuggingfaceApiKey()
-            suggestion = await api.sendToBigcode(code, bigCodeUrl, huggingfaceAccessToken)
+            suggestion = await api.sendToBigcode(code, bigCodeUrl, huggingfaceAccessToken, isLastLine)
             break;
         }
-
 
       } catch {
         // cancel animation
@@ -85,7 +84,7 @@
         return
       }
 
-      if (suggestion) {
+      if (suggestion || suggestion === "") {
         clearInterval(animationInterval)
         // cancel animation element
         activeCellElement.classList.remove('before-content')

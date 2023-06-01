@@ -187,16 +187,49 @@ const getActiveContext = (currctJupyterModel) => {
 
 
 
+const judgeIsTheLastLine = (context, currrntIndex) => {
+    if (currrntIndex == context.length - 1) {
+        return true
+    }
+
+    currrntIndex++
+
+    for (currrntIndex; currrntIndex < context.length; currrntIndex++) {
+
+        const lineInformation = context[currrntIndex]
+
+        if (lineInformation.type == "output"){
+            return true
+        }
+
+        // replace '$ZeroWidthSpace;'
+        if (lineInformation.content.replace("​", '').length != 0) {
+            return false
+        }
+
+    }
+
+    return true
+}
+
+
 
 const getCellContentTextRequiredForOpenAI = (currctJupyterModel) => {
     const context = getActiveContext(currctJupyterModel)
 
     let prompt = ""
+    let isLastLine = true
 
     for (let index = 0; index < context.length; index++) {
         const lineInformation = context[index]
 
-        if (index == context.length - 1 || lineInformation.isCursor) {
+        if (lineInformation.isCursor) {
+            prompt += lineInformation.content
+            isLastLine = isLastLine = judgeIsTheLastLine(context, index)
+            break
+        }
+
+        if (index == context.length - 1) {
             prompt += lineInformation.content
             break
         }
@@ -206,15 +239,16 @@ const getCellContentTextRequiredForOpenAI = (currctJupyterModel) => {
         }
     }
 
-    return prompt
+    return [prompt, isLastLine]
 }
+
 
 
 function getCellContentTextRequiredForBigCode(currctJupyterModel) {
     const context = getActiveContext(currctJupyterModel)
-
     let prompt = "<start_jupyter>"
     let cellCodeText = ""
+    let isLastLine = true
 
     for (let index = 0; index < context.length; index++) {
         const lineInformation = context[index]
@@ -222,7 +256,13 @@ function getCellContentTextRequiredForBigCode(currctJupyterModel) {
         // If output is required, comment out this line
         if (lineInformation.type == "output") continue
 
-        if (index == context.length - 1 || lineInformation.isCursor) {
+        if (lineInformation.isCursor) {
+            prompt += bigcodeFormattPrefixMap[lineInformation.type] + cellCodeText + lineInformation.content
+            isLastLine = judgeIsTheLastLine(context, index)
+            break
+        }
+
+        if (index == context.length - 1) {
             prompt += bigcodeFormattPrefixMap[lineInformation.type] + cellCodeText + lineInformation.content
             break
         }
@@ -238,7 +278,7 @@ function getCellContentTextRequiredForBigCode(currctJupyterModel) {
 
     }
 
-    return prompt
+    return [prompt, isLastLine]
 }
 
 
