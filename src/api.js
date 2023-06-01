@@ -4,7 +4,8 @@ const api = {
 };
 
 
-const cleanUpBigcodeOutput = (suggestion) => {
+
+const cleanUpBigcodeOutput = (suggestion, isLastLine) => {
     suggestion = suggestion.replace("# -*- coding: utf-8 -*-\n\n", "")
     let outPutIndex = suggestion.indexOf('<jupyter_output>')
 
@@ -15,11 +16,19 @@ const cleanUpBigcodeOutput = (suggestion) => {
     const unnecessaryTag = '<|endoftext|>'
     const unnecessaryTagIndex = suggestion.indexOf(unnecessaryTag)
 
-    return unnecessaryTagIndex == -1 ? suggestion : suggestion.slice(0, unnecessaryTagIndex)
+
+    suggestion = unnecessaryTagIndex == -1 ? suggestion : suggestion.slice(0, unnecessaryTagIndex)
+
+    return isLastLine ? suggestion : suggestion.replace("\n","")
 }
 
 
-const cleanUpOpenaiOutput = (suggestion) => {
+
+const cleanUpOpenaiOutput = (suggestion, isLastLine) => {
+    if (!isLastLine){
+        return suggestion.split("\n").length ==  1 ? suggestion : suggestion.split("\n")[0]
+    }
+
     suggestion = suggestion.replace(/\u200B/g, '')
     let outPutIndex = suggestion.indexOf("\n\n§ Output")
     
@@ -35,10 +44,10 @@ const cleanUpOpenaiOutput = (suggestion) => {
 }
 
 // Function to send request to OpenAI API
-api.sendToOpenAI = async (prompt, apiKey, modelType) => {
+api.sendToOpenAI = async (prompt, apiKey, modelType, isLastLine) => {
     if (!apiKey || !modelType) {
         alert("OpenAI API key or modelType not set.");
-        return;
+        return "";
     }
 
     const response = await fetch("https://api.openai.com/v1/completions", {
@@ -58,17 +67,19 @@ api.sendToOpenAI = async (prompt, apiKey, modelType) => {
 
     const data = await response.json();
 
-    return data.choices && data.choices[0] ? cleanUpOpenaiOutput(data.choices[0].text) : ""
+
+    return data.choices && data.choices[0] ? cleanUpOpenaiOutput(data.choices[0].text, isLastLine) : ""
 }
 
 
-api.sendToBigcode = async (code, url, token) => {
-    if (!url) {
-        alert("BigCode service URL not set.");
-        return;
+api.sendToBigcode = async (code, url, token, isLastLine) => {
+    if (!url || !token) {
+        alert("BigCode service URL or Huggingface Access Token not set.");
+        return "";
     }
 
     const prompt = code.replace(/\u200B/g, '')
+    
 
     const bodyData = {
         inputs: prompt,
@@ -79,6 +90,9 @@ api.sendToBigcode = async (code, url, token) => {
         }
     }
 
+    if (!isLastLine){
+        bodyData.parameters.stop.push("\n")
+    }
 
     const response = await fetch(url, {
         method: "POST",
@@ -91,7 +105,8 @@ api.sendToBigcode = async (code, url, token) => {
 
     const data = await response.json();
 
-    return data[0] ? cleanUpBigcodeOutput(data[0].generated_text) : ""
+
+    return data[0] ? cleanUpBigcodeOutput(data[0].generated_text, isLastLine) : ""
 }
 
 
