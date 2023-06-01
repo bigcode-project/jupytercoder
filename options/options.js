@@ -19,33 +19,33 @@ function getSelectedRadioValue() {
 // Save the API key when the Save button is clicked
 document.getElementById("save").addEventListener("click", () => {
   chrome.storage.sync.set({
-    openaiApiKey: document.getElementById("apiKey").value,
-    otherService: document.getElementById("otherServiceUrl").value,
-    huggingfaceApiKey: document.getElementById("huggingfaceApiKey").value,
+    openAIKey: document.getElementById("apiKey").value,
+    bigcodeServiceUrl: document.getElementById("bigcodeServiceUrl").value,
+    huggingfaceAccessToken: document.getElementById("huggingfaceAccessToken").value,
     modelType: select.value,
-    checked: getSelectedRadioValue()
+    checkedMode: getSelectedRadioValue()
   }, () => {
     alert("API key saved.");
   })
 });
 
-chrome.storage.sync.get("openaiApiKey", (data) => {
-  if (data.openaiApiKey) {
-    document.getElementById("apiKey").value = data.openaiApiKey;
+chrome.storage.sync.get("openAIKey", (data) => {
+  if (data.openAIKey) {
+    document.getElementById("apiKey").value = data.openAIKey;
   }
 });
 
-chrome.storage.sync.get("huggingfaceApiKey", (data) => {
-  if (data.huggingfaceApiKey) {
-    document.getElementById("huggingfaceApiKey").value = data.huggingfaceApiKey;
+chrome.storage.sync.get("huggingfaceAccessToken", (data) => {
+  if (data.huggingfaceAccessToken) {
+    document.getElementById("huggingfaceAccessToken").value = data.huggingfaceAccessToken;
   }
 });
 
-chrome.storage.sync.get("otherService", (data) => {
-  if (data.otherService) {
-    document.getElementById("otherServiceUrl").value = data.otherService;
+chrome.storage.sync.get("bigcodeServiceUrl", (data) => {
+  if (data.bigcodeServiceUrl) {
+    document.getElementById("bigcodeServiceUrl").value = data.bigcodeServiceUrl;
   } else {
-    document.getElementById("otherServiceUrl").value = "https://api-inference.huggingface.co/models/bigcode/starcoderbase/"
+    document.getElementById("bigcodeServiceUrl").value = "https://api-inference.huggingface.co/models/bigcode/starcoderbase/"
   }
 });
 
@@ -55,10 +55,11 @@ chrome.storage.sync.get("modelType", (data) => {
   }
 })
 
-chrome.storage.sync.get("checked", (data) => {
-  if (data.checked && data.checked == "openaiApiKey") {
+chrome.storage.sync.get("checkedMode", (data) => {
+  if (data.checkedMode && data.checkedMode == "OpenAI") {
     document.getElementsByClassName('input-key')[0].classList.toggle("input-hidden")
     document.getElementsByClassName('input-key')[1].classList.toggle("input-hidden")
+  
     var optionsElement = document.getElementsByName('options')
     if(optionsElement[0].checked){
       optionsElement[0].checked = false

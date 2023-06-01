@@ -12,16 +12,29 @@
     "storage"
   ],
   "action": {
-    "default_popup": "options.html"
+    "default_popup": "options/options.html"
   },
   "background": {
     "service_worker": "background.js"
   },
   "content_scripts": [
     {
-      "matches": ["*://*.jupyter.org/*", "*://localhost:*/*", "*://127.0.0.1:*/*"],
-      "js": ["content.js"],
-      "css": ["styles.css"],
+      "matches": [
+        "*://*.jupyter.org/*",
+        "*://localhost:*/*",
+        "*://127.0.0.1:*/*"
+      ],
+      "js": [
+        "src/api.js",
+        "src/state.js",
+        "src/preferences.js",
+        "src/utility.js",
+        "src/animation.js",
+        "src/content.js"
+      ],
+      "css": [
+        "options/styles.css"
+      ],
       "run_at": "document_end"
     }
   ]
