@@ -22,8 +22,6 @@ const cleanUpBigcodeOutput = (suggestion, isLastLine) => {
 }
 
 
-
-
 const cleanUpOpenaiOutput = (suggestion, isLastLine) => {
     if (!isLastLine){
         return suggestion.split("\n").length ==  1 ? suggestion : suggestion.split("\n")[0]
@@ -67,7 +65,6 @@ api.sendToOpenAI = async (prompt, apiKey, modelType, isLastLine) => {
 
     const data = await response.json();
 
-
     return data.choices && data.choices[0] ? cleanUpOpenaiOutput(data.choices[0].text, isLastLine) : ""
 }
 
@@ -105,7 +102,6 @@ api.sendToBigcode = async (code, url, token, isLastLine) => {
 
     const data = await response.json();
 
-    
     return data[0] ? cleanUpBigcodeOutput(data[0].generated_text, isLastLine) : ""
 }
 
