@@ -9,12 +9,11 @@ const utility = {
             currctJupyterModel: lab or notebook
             requestType: normal or fixBug
 
+
         Returns: str
             Returns the corresponding formatting code based on the request mode selected by the current user
     */
-
-    getCellContentText(activeCell, checkedMode, currctJupyterModel) { },
-
+    getCodeFormat(checkedMode, currctJupyterModel, requestType) {},
     /*
         Insert the code after the request
 
@@ -23,9 +22,13 @@ const utility = {
             activeRequestTextarea: The textarea dom that the user is operating on
     */
     insertSuggestion(suggestion, activeRequestTextarea) { },
-    insertSuggestionFixBug(codeToFill, activeRequestTextarea, currctJupyterModel) { },
+    insertSuggestionFixBug(suggestion, activeRequestTextarea, currctJupyterModel) { },
+
+    // Hide the code of the current cell user
     enableCellCode(activeRequestTextarea) {},
+    // Clear displayed code
     clearShowcasingCode(activeRequestTextarea) {},
+
 }
 
 
@@ -110,6 +113,7 @@ const getActiveCellPointerCode = (activeCell, cellIndex, currctJupyterModel) => 
     // Determine whether the pointer is at the end of a line, Because there is a left marring, so -4, but due to precision issues so -3
     if (cursorOffsetLeft - 3 < codeElementWdth) {
         cursorAtEndInLine = false
+
     }
 
     for (let i = 0; i < linesElement.length; i++) {
@@ -148,7 +152,9 @@ const getActiveCellPointerCode = (activeCell, cellIndex, currctJupyterModel) => 
             })
         });
     }
+
     return [cellContent, cursorAtEndInLine]
+
 }
 
 
@@ -224,9 +230,11 @@ const judgeIsTheLastLine = (context, currrntIndex) => {
 
 const getCellContentTextRequiredForOpenAI = (currctJupyterModel) => {
     const context = getActiveContext(currctJupyterModel)
+
     if(context.length == 0){
         return [null, null]
     }
+
 
     let prompt = ""
     let isLastLine = true
@@ -257,9 +265,11 @@ const getCellContentTextRequiredForOpenAI = (currctJupyterModel) => {
 
 function getCellContentTextRequiredForBigCode(currctJupyterModel) {
     const context = getActiveContext(currctJupyterModel)
+
     if(context.length == 0){
         return [null, null]
     }
+
 
     let prompt = "<start_jupyter>"
     let cellCodeText = ""
@@ -292,6 +302,7 @@ function getCellContentTextRequiredForBigCode(currctJupyterModel) {
 
     return [prompt, isLastLine]
 }
+
 
 
 const getCellContentText = (checkedMode, currctJupyterModel) => {

@@ -23,7 +23,8 @@
   }
 
 
-  const { utility, animation, state, api, preferences, } = window;
+  const { utility, animation, state, api, preferences } = window;
+
 
   const mainProcess = async () => {
     //Obtain the Textarea of the current input box
@@ -47,6 +48,7 @@
     // Retrieve the content of the active cell 
     const [code, isLastLine] = utility.getCodeFormat(checkedMode, currctJupyterModel, requestType);
 
+
     if (!code) return;
 
     if (activeCell) {
@@ -67,6 +69,7 @@
               state.isRequestInProgress = false
               return
             }
+
             const apikey = await preferences.getOpenAIKey()
             const GPTModelType = await preferences.getGPTModelType()
             suggestion = await api.sendToOpenAI(code, apikey, GPTModelType, isLastLine)
@@ -106,6 +109,7 @@
         state.codeToFill = suggestion
 
         utility.viewCodeResult(suggestion, animationElement, code, requestType, activeTextarea)
+
       }
     }
   }
@@ -138,7 +142,6 @@
       state.isRequestSuccessful = false;
     }
   };
-
 
 
   const undisplayedCode = () => {
@@ -182,6 +185,7 @@
     document.addEventListener('keydown', requestCodeKeyListener);
     document.addEventListener('keydown', fillCodeKeyListener);
     document.addEventListener("mousedown", undisplayedCode)
+
   }
 
 

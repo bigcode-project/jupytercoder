@@ -4,7 +4,6 @@ const api = {
 };
 
 
-
 const cleanUpBigcodeOutput = (suggestion, isLastLine) => {
     suggestion = suggestion.replace("# -*- coding: utf-8 -*-\n\n", "")
     let outPutIndex = suggestion.indexOf('<jupyter_output>')
@@ -21,6 +20,7 @@ const cleanUpBigcodeOutput = (suggestion, isLastLine) => {
 
     return isLastLine ? suggestion : suggestion.replace("\n","")
 }
+
 
 
 
@@ -105,7 +105,7 @@ api.sendToBigcode = async (code, url, token, isLastLine) => {
 
     const data = await response.json();
 
-
+    
     return data[0] ? cleanUpBigcodeOutput(data[0].generated_text, isLastLine) : ""
 }
 
