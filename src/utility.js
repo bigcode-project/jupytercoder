@@ -253,9 +253,6 @@ function getCellContentTextRequiredForBigCode(currctJupyterModel) {
     for (let index = 0; index < context.length; index++) {
         const lineInformation = context[index]
 
-        // If output is required, comment out this line
-        if (lineInformation.type == "output") continue
-
         if (lineInformation.isCursor) {
             prompt += bigcodeFormattPrefixMap[lineInformation.type] + cellCodeText + lineInformation.content
             isLastLine = judgeIsTheLastLine(context, index)
