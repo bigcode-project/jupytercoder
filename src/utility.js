@@ -24,7 +24,8 @@ const utility = {
     */
     insertSuggestion(suggestion, activeRequestTextarea) { },
     insertSuggestionFixBug(codeToFill, activeRequestTextarea, currctJupyterModel) { },
-    
+    enableCellCode(activeRequestTextarea) {},
+    clearShowcasingCode(activeRequestTextarea) {},
 }
 
 
@@ -105,9 +106,10 @@ const getActiveCellPointerCode = (activeCell, cellIndex, currctJupyterModel) => 
     // code dom element length in active line
     const codeElementWdth = linesElement[lineIndex].querySelector("span").offsetWidth
 
+    let cursorAtEndInLine = true
     // Determine whether the pointer is at the end of a line, Because there is a left marring, so -4, but due to precision issues so -3
     if (cursorOffsetLeft - 3 < codeElementWdth) {
-        return [null, null]
+        cursorAtEndInLine = false
     }
 
     for (let i = 0; i < linesElement.length; i++) {
@@ -146,7 +148,7 @@ const getActiveCellPointerCode = (activeCell, cellIndex, currctJupyterModel) => 
             })
         });
     }
-    return cellContent
+    return [cellContent, cursorAtEndInLine]
 }
 
 
@@ -178,7 +180,9 @@ const getActiveContext = (currctJupyterModel) => {
 
     for (let i = 0; i < cellElements.length; i++) {
         if (i == activeCellIndex) {
-            const activeCellContent = getActiveCellPointerCode(activeCell, i, currctJupyterModel)
+            const [activeCellContent, cursorAtEndInLine] = getActiveCellPointerCode(activeCell, i, currctJupyterModel)
+            if (!cursorAtEndInLine) return []
+
             context = [...context, ...activeCellContent]
         } else if (i < activeCellIndex) {
             const cellContent = getCellCode(cellElements[i], i, currctJupyterModel)
@@ -220,6 +224,9 @@ const judgeIsTheLastLine = (context, currrntIndex) => {
 
 const getCellContentTextRequiredForOpenAI = (currctJupyterModel) => {
     const context = getActiveContext(currctJupyterModel)
+    if(context.length == 0){
+        return [null, null]
+    }
 
     let prompt = ""
     let isLastLine = true
@@ -250,6 +257,10 @@ const getCellContentTextRequiredForOpenAI = (currctJupyterModel) => {
 
 function getCellContentTextRequiredForBigCode(currctJupyterModel) {
     const context = getActiveContext(currctJupyterModel)
+    if(context.length == 0){
+        return [null, null]
+    }
+
     let prompt = "<start_jupyter>"
     let cellCodeText = ""
     let isLastLine = true
@@ -438,7 +449,7 @@ function parseErrorFullmessage(message) {
 
 const formatCodeAndBugIllustrate = (currctJupyterModel) => {
     const activeCell = document.activeElement.parentElement.parentElement;
-    const codeLineInformation = getActiveCellPointerCode(activeCell, 0, currctJupyterModel)
+    const [codeLineInformation, cursorAtEndInLine] = getActiveCellPointerCode(activeCell, 0, currctJupyterModel)
 
     let code = "<commit_before>"
     let errorMessageIndex = -1
@@ -491,7 +502,7 @@ const viewDiffCode = (html, activeRequestTextarea) => {
     // Due to the need to hide user code, the previous preview logic cannot be used
     const codeMirrorCode = activeCell.querySelector(".CodeMirror-code")
     const codeMirrorCodeLine = document.createElement('pre');
-    codeMirrorCodeLine.classList.add("CodeMirror-line")
+    codeMirrorCodeLine.classList.add("CodeMirror-line", "displayed")
 
     codeMirrorCodeLine.innerHTML = html
     codeMirrorCode.appendChild(codeMirrorCodeLine)
@@ -529,7 +540,7 @@ const disableCellCode = (textarea) => {
 }
 
 // Restore all code that hides the current cell
-const enableCellCode = (textarea) => {
+utility.enableCellCode = (textarea) => {
     const activeCell = textarea.parentElement.parentElement
     const codeMirrorLines = activeCell.querySelectorAll('.CodeMirror-code pre');
     for (let i = 0; i < codeMirrorLines.length; i++) {
@@ -547,7 +558,7 @@ utility.insertSuggestionFixBug = (suggestion, activeRequestTextarea, currctJupyt
             simulateUserPressingBackspace(activeRequestTextarea)
         }
     }
-    enableCellCode(activeRequestTextarea)
+    utility.enableCellCode(activeRequestTextarea)
 
     activeRequestTextarea.value = suggestion;
 
@@ -559,6 +570,16 @@ utility.insertSuggestionFixBug = (suggestion, activeRequestTextarea, currctJupyt
     const tabEvent = new KeyboardEvent('keydown', { key: 'Tab' });
     activeRequestTextarea.dispatchEvent(tabEvent);
 
+}
+
+
+utility.clearShowcasingCode = (activeRequestTextarea) => {
+    utility.enableCellCode(activeRequestTextarea)
+    const activeCell = activeRequestTextarea.parentElement.parentElement;
+  
+    // Due to the need to hide user code, the previous preview logic cannot be used
+    const displayedCodeElement = activeCell.querySelector(".displayed")
+    if(displayedCodeElement) displayedCodeElement.remove();
 }
 
 window.utility = utility

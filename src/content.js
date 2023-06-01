@@ -23,8 +23,7 @@
   }
 
 
-  const { utility, animation, state, api, preferences } = window;
-
+  const { utility, animation, state, api, preferences, } = window;
 
   const mainProcess = async () => {
     //Obtain the Textarea of the current input box
@@ -37,18 +36,17 @@
 
     const checkedMode = await preferences.getCheckedMode()
 
-    if (!checkedMode){
+    if (!checkedMode) {
       alert("Please save your settings!")
       return
     }
 
     const currctJupyterModel = state.currctJupyterModel
-    const requestType =  state.requestType
-    console.log(requestType);
+    const requestType = state.requestType
+
     // Retrieve the content of the active cell 
     const [code, isLastLine] = utility.getCodeFormat(checkedMode, currctJupyterModel, requestType);
 
-    console.log(code);
     if (!code) return;
 
     if (activeCell) {
@@ -62,6 +60,13 @@
 
         switch (checkedMode) {
           case "OpenAI":
+            // Openai does not support fixing bugs
+            if (state.requestType == "fixBug") {
+              clearInterval(animationInterval)
+              activeCellElement.classList.remove('before-content')
+              state.isRequestInProgress = false
+              return
+            }
             const apikey = await preferences.getOpenAIKey()
             const GPTModelType = await preferences.getGPTModelType()
             suggestion = await api.sendToOpenAI(code, apikey, GPTModelType, isLastLine)
@@ -105,6 +110,7 @@
     }
   }
 
+
   // Adds an event listener for filling in code after the request is completed
   const fillCodeKeyListener = (event) => {
     if (event.ctrlKey && !state.isRequestInProgress && state.isRequestSuccessful) {
@@ -125,7 +131,7 @@
         } else if (state.requestType == "fixBug") {
           utility.insertSuggestionFixBug(state.codeToFill, state.activeRequestTextarea, state.currctJupyterModel)
         }
-        
+
       }
 
       // Reset the request successful flag
@@ -133,6 +139,14 @@
     }
   };
 
+
+
+  const undisplayedCode = () => {
+    if (state.isRequestSuccessful) {
+      state.isRequestSuccessful = false
+      utility.clearShowcasingCode(state.activeRequestTextarea)
+    }
+  }
 
 
   const requestCodeKeyListener = async (event) => {
@@ -144,7 +158,6 @@
       if (state.isRequestInProgress || state.isRequestSuccessful) return
 
       state.requestType = "normal"
-
       await mainProcess()
 
     } else if (event.ctrlKey && event.code === 'Backquote') {
@@ -152,16 +165,23 @@
       event.preventDefault();
 
       if (state.isRequestInProgress || state.isRequestSuccessful) return
-      
-      state.requestType = "fixBug"
 
+      state.requestType = "fixBug"
       await mainProcess()
+      
+    } else if (!event.ctrlKey) {  // Press all buttons except ctrl, cancel if fixbug is being displayed
+
+      undisplayedCode()
+
     }
+
+
   }
 
   const montedEventListener = () => {
     document.addEventListener('keydown', requestCodeKeyListener);
     document.addEventListener('keydown', fillCodeKeyListener);
+    document.addEventListener("mousedown", undisplayedCode)
   }
 
 
