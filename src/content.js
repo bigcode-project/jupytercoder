@@ -40,8 +40,9 @@
     const currctJupyterModel = state.currctJupyterModel
 
     // Retrieve the content of the active cell 
-    const code = utility.getCellContentText(checkedMode, currctJupyterModel);
+    const code = utility.getCodeFormat(checkedMode, currctJupyterModel, state.requestType);
 
+    console.log(code);
     if (!code) return;
 
     if (activeCell) {

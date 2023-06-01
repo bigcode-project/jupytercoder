@@ -1,19 +1,19 @@
-// Call Link: getCellContentText -> getCellContentTextRequiredForBigCode/getCellContentTextRequiredForOpenAI -> getActiveContext -> getActiveCellPointerCode/getCellCode
+// Call Link: getCodeFormat -> getCellContentText -> getCellContentTextRequiredForBigCode/getCellContentTextRequiredForOpenAI -> getActiveContext -> getActiveCellPointerCode/getCellCode
 
 const utility = {
     /*
        Get Context Code text
 
         Params:
-            activeCell: The cell dom that the user is operating on
             checkedMode: openai or bigcode
             currctJupyterModel: lab or notebook
+            requestType: normal or fixBug
 
         Returns: str
             Returns the corresponding formatting code based on the request mode selected by the current user
     */
 
-    getCellContentText(activeCell, checkedMode, currctJupyterModel) { },
+    getCodeFormat(checkedMode, currctJupyterModel, requestType) { },
 
     /*
         Insert the code after the request
@@ -24,7 +24,7 @@ const utility = {
     */
     insertSuggestion(suggestion, activeRequestTextarea) { },
     generateCompareCodes(oldcode, newcode) { },
-    getCodeFormat() {},
+    
 }
 
 
@@ -101,7 +101,7 @@ const getActiveCellPointerCode = (activeCell, cellIndex, currctJupyterModel) => 
 
     // Obtain element for all line
     const linesElement = activeCell.getElementsByClassName('CodeMirror-line')
-    
+
     // code dom element length in active line
     const codeElementWdth = linesElement[lineIndex].querySelector("span").offsetWidth
 
@@ -246,7 +246,7 @@ function getCellContentTextRequiredForBigCode(currctJupyterModel) {
 }
 
 
-utility.getCellContentText = (checkedMode, currctJupyterModel) => {
+const getCellContentText = (checkedMode, currctJupyterModel) => {
     switch (checkedMode) {
         case "OpenAI": return getCellContentTextRequiredForOpenAI(currctJupyterModel);
         case "BigCode": return getCellContentTextRequiredForBigCode(currctJupyterModel)
@@ -390,5 +390,60 @@ utility.generateCompareCodes = (oldCode, newCode) => {
     return html.join('\n');
 }
 
+function parseErrorFullmessage(message) {
+    const meassgeLines = message.split("\n").filter((line) => {
+        return line != "" && line != " "
+    })
+    return meassgeLines[meassgeLines.length - 1]
+}
+
+
+const formatCodeAndBugIllustrate = (currctJupyterModel) => {
+    const activeCell = document.activeElement.parentElement.parentElement;
+    const codeLineInformation = getActiveCellPointerCode(activeCell, 0, currctJupyterModel)
+
+    let code = "<commit_before>"
+    let errorMessageIndex = -1
+    for (let index = 0; index < codeLineInformation.length; index++) {
+        const lineInformation = codeLineInformation[index]
+
+        if (lineInformation.type == "output") {
+            // Determine if the next one is also an output, there can only be two consecutive outputs at most
+            if (index < codeLineInformation.length - 1 && codeLineInformation[index + 1].type == "output") {
+                errorMessageIndex = index + 1
+            } else {
+                errorMessageIndex = index
+            }
+            break
+        }
+
+        if (index == codeLineInformation.length - 1) {
+            code += lineInformation.content
+            break
+        } else if (codeLineInformation[index + 1].type != "output") {
+            code += lineInformation.content + "\n"
+        } else {
+            code += lineInformation.content
+        }
+
+    }
+
+    if (errorMessageIndex == -1) {
+        return ""
+    }
+
+
+    return `${code}<commit_msg>fix bug, ${parseErrorFullmessage(codeLineInformation[errorMessageIndex].content)}<commit_after>`
+}
+
+
+
+utility.getCodeFormat = (checkedMode, currctJupyterModel, requestType) => {
+    switch (requestType) {
+        case "normal": return getCellContentText(checkedMode, currctJupyterModel);
+        case "fixBug": return formatCodeAndBugIllustrate(currctJupyterModel);
+        default: return ""
+    }
+}
 
 window.utility = utility
