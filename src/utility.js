@@ -23,6 +23,8 @@ const utility = {
             activeRequestTextarea: The textarea dom that the user is operating on
     */
     insertSuggestion(suggestion, activeRequestTextarea) { },
+    generateCompareCodes(oldcode, newcode) { },
+    getCodeFormat() {},
 }
 
 
@@ -99,6 +101,7 @@ const getActiveCellPointerCode = (activeCell, cellIndex, currctJupyterModel) => 
 
     // Obtain element for all line
     const linesElement = activeCell.getElementsByClassName('CodeMirror-line')
+    
     // code dom element length in active line
     const codeElementWdth = linesElement[lineIndex].querySelector("span").offsetWidth
 
@@ -274,6 +277,117 @@ utility.insertSuggestion = (suggestion, activeRequestTextarea) => {
     // Trigger a keydown event with Tab key to perform auto-indentation
     const tabEvent = new KeyboardEvent('keydown', { key: 'Tab' });
     activeRequestTextarea.dispatchEvent(tabEvent);
+}
+
+
+// Levenshtein distance, Obtain similarity based on distance
+const levenshteinDistanceDP = (str1, str2) => {
+    const m = str1.length;
+    const n = str2.length;
+    const dp = Array(n + 1).fill(0);
+
+    for (let j = 1; j <= n; j++) {
+        dp[j] = j;
+    }
+
+    for (let i = 1; i <= m; i++) {
+        let prev = dp[0];
+        dp[0] = i;
+        for (let j = 1; j <= n; j++) {
+            let temp = dp[j];
+            if (str1[i - 1] === str2[j - 1]) {
+                // Characters are equal and no action is required
+                dp[j] = prev;
+            } else {
+                // Characters are not equal, take the minimum value of adjacent position operands and add 1
+                dp[j] = Math.min(dp[j - 1], dp[j], prev) + 1;
+            }
+            prev = temp;
+        }
+    }
+
+    return dp[n];
+}
+
+const compareCodeLines = (codeLine1, codeLine2) => {
+    codeLine1 = codeLine1.toLowerCase();
+    codeLine2 = codeLine2.toLowerCase();
+
+    const distance = levenshteinDistanceDP(codeLine1, codeLine2);
+
+    const similarityScore = 1 - distance / Math.max(codeLine1.length, codeLine2.length);
+
+    return similarityScore >= 0.8;
+}
+
+
+
+// Due to the presence of a large number of invisible characters, replace them
+let invisibleCodeReg = /[\u200B-\u200D\uFEFF]/g
+utility.generateCompareCodes = (oldCode, newCode) => {
+
+    oldCode = oldCode.replace(invisibleCodeReg, "")
+    newCode = newCode.replace(invisibleCodeReg, "")
+
+    // Split the strings into lines and store them in separate arrays
+    const oldCodeLine = oldCode.split('\n');
+    const newCodeLine = newCode.split('\n');
+
+
+    // Create an empty array to store the generated HTML
+    let html = [];
+    let newCodeIndex = 0
+
+    // Iterate over the lines and compare them
+    for (let i = 0; i < oldCodeLine.length; i++) {
+
+        if (newCodeIndex == newCodeLine.length) {
+            for (i; i < oldCodeLine.length; i++) {
+                html.push(`<span style="color: red;">- ${oldCodeLine[i]}</span>`)
+            }
+            break;
+        }
+
+        const oldLine = oldCodeLine[i];
+        const newLine = newCodeLine[newCodeIndex];
+
+        // If the lines are the same, generate a gray span
+        if (oldLine === newLine) {
+            html.push(`<span style="color: #787878">= ${oldLine}</span>`);
+            newCodeIndex++;
+        } else if (compareCodeLines(oldLine, newLine)) {// Determine the similarity here. If it is similar, it will be considered a code error. The old one will be highlighted in red and added below (green)
+            html.push(`<span style="color: red;">- ${oldLine}</span>`)
+            html.push(`<span style="color: green;">+ ${newLine}</span>`)
+            newCodeIndex++
+        } else {
+            // If it is completely different, it will be considered as a new code snippet and added directly above (green)
+
+            let newCodeAssistIndex = newCodeIndex
+            // Prepare to insert code with HTML
+            const perInsertCode = []
+
+            let isAddedOldCode = false
+            // Check which line of the new code is similar to the old one
+            for (newCodeAssistIndex; newCodeAssistIndex < newCodeLine.length; newCodeAssistIndex++) {
+                if (oldLine == newCodeLine[newCodeAssistIndex] || compareCodeLines(oldLine, newCodeLine[newCodeIndex])) {
+                    for (newCodeIndex; newCodeIndex < newCodeAssistIndex; newCodeIndex++) {
+                        perInsertCode.push(`<span style="color: green;">+ ${newCodeLine[newCodeIndex]}</span>`)
+                    }
+                } else {
+                    if (i < oldCodeLine.length) {
+                        perInsertCode.push(`<span style="color: red;">- ${oldCodeLine[i++]}</span>`)
+                        isAddedOldCode = true
+                    }
+                    perInsertCode.push(`<span style="color: green;">+ ${newCodeLine[newCodeIndex++]}</span>`)
+                }
+            }
+            if (isAddedOldCode) i--
+            html = [...html, ...perInsertCode]
+        }
+    }
+
+    // Join the generated HTML and return it
+    return html.join('\n');
 }
 
 

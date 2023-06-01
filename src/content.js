@@ -36,7 +36,7 @@
     const activeCell = activeTextarea.parentElement.parentElement
 
     const checkedMode = await preferences.getCheckedMode()
-    
+
     const currctJupyterModel = state.currctJupyterModel
 
     // Retrieve the content of the active cell 
@@ -53,7 +53,7 @@
       // Deal with a series of problems such as network
       try {
 
-        switch (checkedMode) { 
+        switch (checkedMode) {
           case "OpenAI":
             const apikey = await preferences.getOpenAIKey()
             const GPTModelType = await preferences.getGPTModelType()
@@ -114,7 +114,12 @@
         // delete animation element
         animationElementList[0].remove()
 
-        utility.insertSuggestion(state.codeToFill, state.activeRequestTextarea);
+        // request type "normal" or "fixBug"
+        if (state.requestType == "normal") {
+          utility.insertSuggestion(codeToFill, state.activeRequestTextarea);
+        } else if (state.requestType == "fixBug") {
+          utility.insertSuggestionFixBug(codeToFill, state.activeRequestTextarea, static_variable.currctJupyterModel)
+        }
       }
 
       // Reset the request successful flag
@@ -122,18 +127,29 @@
     }
   };
 
+
+
   const requestCodeKeyListener = async (event) => {
     // Check if the Ctrl + Space keys were pressed
     if (event.ctrlKey && event.code === 'Space') {
       // Block default events
       event.preventDefault();
 
-      if (state.isRequestInProgress || state.isRequestSuccessful) {
-        return
-      }
+      if (state.isRequestInProgress || state.isRequestSuccessful) return
+
+      state.requestType = "normal"
 
       await mainProcess()
 
+    } else if (event.ctrlKey && event.code === 'Backquote') {
+      // Block default events
+      event.preventDefault();
+
+      if (state.isRequestInProgress || state.isRequestSuccessful) return
+      
+      state.requestType = "fixBug"
+
+      await mainProcess()
     }
   }
 
