@@ -285,7 +285,8 @@ function getCellContentTextRequiredForBigCode(currctJupyterModel) {
 utility.getCellContentText = (checkedMode, currctJupyterModel) => {
     switch (checkedMode) {
         case "OpenAI": return getCellContentTextRequiredForOpenAI(currctJupyterModel);
-        case "BigCode": return getCellContentTextRequiredForBigCode(currctJupyterModel)
+        case "BigCode": return getCellContentTextRequiredForBigCode(currctJupyterModel);
+        default: return [null, null]
     }
 }
 

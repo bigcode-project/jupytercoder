@@ -45,7 +45,7 @@ const cleanUpOpenaiOutput = (suggestion, isLastLine) => {
 api.sendToOpenAI = async (prompt, apiKey, modelType, isLastLine) => {
     if (!apiKey || !modelType) {
         alert("OpenAI API key or modelType not set.");
-        return;
+        return "";
     }
 
     const response = await fetch("https://api.openai.com/v1/completions", {
@@ -70,9 +70,9 @@ api.sendToOpenAI = async (prompt, apiKey, modelType, isLastLine) => {
 
 
 api.sendToBigcode = async (code, url, token, isLastLine) => {
-    if (!url) {
-        alert("BigCode service URL not set.");
-        return;
+    if (!url || !token) {
+        alert("BigCode service URL or Huggingface Access Token not set.");
+        return "";
     }
 
     const prompt = code.replace(/\u200B/g, '')

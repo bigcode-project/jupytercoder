@@ -36,11 +36,15 @@
     const activeCell = activeTextarea.parentElement.parentElement
 
     const checkedMode = await preferences.getCheckedMode()
-    
+    if (!checkedMode){
+      alert("Please save your settings!")
+      return
+    }
+
     const currctJupyterModel = state.currctJupyterModel
 
     // Retrieve the content of the active cell 
-    const [code, isLastLine]= utility.getCellContentText(checkedMode, currctJupyterModel);
+    const [code, isLastLine] = utility.getCellContentText(checkedMode, currctJupyterModel);
 
     if (!code) return;
 
