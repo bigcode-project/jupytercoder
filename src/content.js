@@ -144,7 +144,7 @@
   };
 
 
-  const undisplayedCode = () => {
+  const undisplayedCodeDiff = () => {
     if (state.isRequestSuccessful) {
       state.isRequestSuccessful = false
       utility.clearShowcasingCode(state.activeRequestTextarea)
@@ -174,7 +174,7 @@
       
     } else if (!event.ctrlKey) {  // Press all buttons except ctrl, cancel if fixbug is being displayed
 
-      undisplayedCode()
+      undisplayedCodeDiff()
 
     }
 
@@ -184,7 +184,7 @@
   const montedEventListener = () => {
     document.addEventListener('keydown', requestCodeKeyListener);
     document.addEventListener('keydown', fillCodeKeyListener);
-    document.addEventListener("mousedown", undisplayedCode)
+    document.addEventListener("mousedown", undisplayedCodeDiff)
 
   }
 
