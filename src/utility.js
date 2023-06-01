@@ -5,7 +5,6 @@ const utility = {
        Get Context Code text
 
         Params:
-            activeCell: The cell dom that the user is operating on
             checkedMode: openai or bigcode
             currctJupyterModel: lab or notebook
 
@@ -13,7 +12,7 @@ const utility = {
             Returns the corresponding formatting code based on the request mode selected by the current user
     */
 
-    getCellContentText(activeCell, checkedMode, currctJupyterModel) { },
+    getCellContentText(checkedMode, currctJupyterModel) { },
 
     /*
         Insert the code after the request
