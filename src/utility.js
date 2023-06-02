@@ -123,6 +123,7 @@ const getActiveCellPointerCode = (activeCell, cellIndex, currctJupyterModel) => 
 
     // get cursor element
     const cursorElement = activeCell.querySelector('div.CodeMirror-cursor')
+    if(!cursorElement) return []
 
     const style = window.getComputedStyle(cursorElement);
 
@@ -142,8 +143,8 @@ const getActiveCellPointerCode = (activeCell, cellIndex, currctJupyterModel) => 
     // Determine whether the pointer is at the end of a line, Because there is a left marring, so -4, but due to precision issues so -3
     if (cursorOffsetLeft - 3 < codeElementWdth) {
         cursorAtEndInLine = false
-
     }
+
 
     for (let i = 0; i < linesElement.length; i++) {
         if (i == lineIndex) {
