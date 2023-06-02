@@ -5,7 +5,7 @@ const api = {
 
 
 const cleanUpBigcodeOutput = (suggestion, isLastLine) => {
-    suggestion = suggestion.replace("# -*- coding: utf-8 -*-\n\n", "")
+    suggestion = suggestion.replace("# -*- coding: utf-8 -*-\n\n", "").replace(/\t/g, '    ')
     let outPutIndex = suggestion.indexOf('<jupyter_output>')
 
     if (outPutIndex != -1){
@@ -83,8 +83,10 @@ api.sendToBigcode = async (code, url, token, isLastLine) => {
         stream: false,
         parameters: {
             return_full_text: false,
-            stop: ["<jupyter_output>"]
-        }
+            stop: ["<jupyter_output>"],
+            max_new_tokens: 20
+        },
+        
     }
 
     if (!isLastLine){

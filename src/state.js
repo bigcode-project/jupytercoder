@@ -9,6 +9,12 @@ const state = {
     isRequestSuccessful: false,
     // Code to be filled in after request completion
     codeToFill: "",
+    // value is normal or fixBug
+    requestType: "",
+    
+    autoRequestTimeout: null,
+
+    recordCodeEqualPairShortcutKey: new Map([['\'', false], ['"', false]])
 }
 
 window.state = state
