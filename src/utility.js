@@ -104,7 +104,7 @@ const getActiveCellPointerCode = (activeCell, cellIndex, currctJupyterModel) => 
     const lineIndex = Math.round(parseFloat(style.getPropertyValue('top')) / 17)
 
     // Obtain element for all line
-    const linesElement = activeCell.getElementsByClassName('CodeMirror-line')
+    const linesElement = activeCell.querySelectorAll('.CodeMirror-line:not(.displayed)')
 
     // code dom element length in active line
     const codeElementWdth = linesElement[lineIndex].querySelector("span").offsetWidth
@@ -540,6 +540,13 @@ const simulateUserPressingBackspace = (activeRequestTextarea) => {
     }
 }
 
+const simulateUserPressingMoveMouseRight = (activeRequestTextarea) => {
+    if (activeRequestTextarea) {
+        let event = new KeyboardEvent("keydown", { key: "ArrowRight", keyCode: 39, which: 39, code: "ArrowRight" });
+        activeRequestTextarea.dispatchEvent(event);
+    }
+}
+
 
 // Hide all code for the active cell
 const disableCellCode = (textarea) => {
@@ -565,7 +572,11 @@ utility.insertSuggestionFixBug = (suggestion, activeRequestTextarea, currctJupyt
     const [cellContent, cursorAtEndInLine] = getActiveCellPointerCode(activeRequestTextarea.parentElement.parentElement, 0, currctJupyterModel)
 
     for (let index = 0; index < cellContent.length; index++) {
+        if (cellContent[index].type == "output"){
+            continue
+        }
         for (let j = 0; j < cellContent[index].content.length; j++) {
+            simulateUserPressingMoveMouseRight(activeRequestTextarea)
             simulateUserPressingBackspace(activeRequestTextarea)
         }
     }
@@ -576,11 +587,6 @@ utility.insertSuggestionFixBug = (suggestion, activeRequestTextarea, currctJupyt
     // Trigger an input event on the textarea to update the CodeMirror instance
     const event = new Event('input', { bubbles: true, cancelable: true });
     activeRequestTextarea.dispatchEvent(event);
-
-    // Trigger a keydown event with Tab key to perform auto-indentation
-    const tabEvent = new KeyboardEvent('keydown', { key: 'Tab' });
-    activeRequestTextarea.dispatchEvent(tabEvent);
-
 }
 
 

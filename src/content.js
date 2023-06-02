@@ -30,6 +30,10 @@
     //Obtain the Textarea of the current input box
     const activeTextarea = document.activeElement;
 
+    if (activeTextarea.tagName != "TEXTAREA"){
+      return
+    }
+
     state.activeRequestTextarea = activeTextarea
 
     // Obtain the current input box (cell) from the Textarea of the current input box
