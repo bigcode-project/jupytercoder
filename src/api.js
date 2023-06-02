@@ -7,7 +7,7 @@ const api = {
 const cleanUpBigcodeOutput = (suggestion, isLastLine) => {
     suggestion = suggestion.replace("# -*- coding: utf-8 -*-\n\n", "").replace(/\t/g, '    ')
     let outPutIndex = suggestion.indexOf('<jupyter_output>')
-    console.log(JSON.stringify(suggestion))
+
     if (outPutIndex != -1){
         suggestion = suggestion.slice(0, outPutIndex)
     }
