@@ -5,9 +5,9 @@ const api = {
 
 
 const cleanUpBigcodeOutput = (suggestion, isLastLine) => {
-    suggestion = suggestion.replace("# -*- coding: utf-8 -*-\n\n", "")
+    suggestion = suggestion.replace("# -*- coding: utf-8 -*-\n\n", "").replace(/\t/g, '    ')
     let outPutIndex = suggestion.indexOf('<jupyter_output>')
-
+    console.log(JSON.stringify(suggestion))
     if (outPutIndex != -1){
         suggestion = suggestion.slice(0, outPutIndex)
     }
@@ -84,7 +84,7 @@ api.sendToBigcode = async (code, url, token, isLastLine) => {
         parameters: {
             return_full_text: false,
             stop: ["<jupyter_output>"],
-            max_new_tokens: 200
+            max_new_tokens: 20
         },
         
     }

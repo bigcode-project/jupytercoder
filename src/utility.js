@@ -2,18 +2,18 @@
 
 const utility = {
     /*
-       Get Context Code text
+        Get Context Code text
 
         Params:
             checkedMode: openai or bigcode
             currctJupyterModel: lab or notebook
             requestType: normal or fixBug
 
-
         Returns: str
             Returns the corresponding formatting code based on the request mode selected by the current user
     */
-    getCodeFormat(checkedMode, currctJupyterModel, requestType) {},
+    getCodeFormat(checkedMode, currctJupyterModel, requestType) { },
+
     /*
         Insert the code after the request
 
@@ -22,13 +22,43 @@ const utility = {
             activeRequestTextarea: The textarea dom that the user is operating on
     */
     insertSuggestion(suggestion, activeRequestTextarea) { },
+
     insertSuggestionFixBug(suggestion, activeRequestTextarea, currctJupyterModel) { },
 
     // Hide the code of the current cell user
-    enableCellCode(activeRequestTextarea) {},
-    // Clear displayed code
-    clearShowcasingCode(activeRequestTextarea) {},
+    enableCellCode(activeRequestTextarea) { },
 
+    // Clear displayed code
+    clearShowcasingCode(activeRequestTextarea) { },
+
+    /*
+        Check that the input code matches the next character of the code prompt
+
+        Params:
+            eventCode: keyboard characters
+            codeToFill: hint Code
+
+        Returns: boolean
+    */
+    checkCodeEquality(eventCode, codeToFill) { },
+    
+    // Showing Code Tips
+    showNormalCode(codeToFill, activeRequestTextarea) { },
+    
+    // Determines if this is jupyter's default character
+    isShortcutKeyChar(eventCode, activeRequestTextarea) { },
+    
+    /*
+        Display the request result block
+
+        Params:
+            suggestion: The code used for demonstration
+            codeFormat: Prompt of request
+            requestType: normal or fixbug
+            activeRequestTextarea: Textarea when on requested
+
+    */
+    viewCodeResult(suggestion, codeFormat, requestType, activeRequestTextarea) { }
 }
 
 
@@ -39,7 +69,6 @@ const bigcodeFormattPrefixMap = {
     "text": "<jupyter_text>",
     "output": "<jupyter_output>"
 }
-
 
 const getCellCode = (cellElement, cellIndex, currctJupyterModel) => {
     const cellContent = []
@@ -212,7 +241,7 @@ const judgeIsTheLastLine = (context, currrntIndex) => {
 
         const lineInformation = context[currrntIndex]
 
-        if (lineInformation.type == "output"){
+        if (lineInformation.type == "output") {
             return true
         }
 
@@ -225,13 +254,13 @@ const judgeIsTheLastLine = (context, currrntIndex) => {
 
     return true
 }
- 
+
 
 
 const getCellContentTextRequiredForOpenAI = (currctJupyterModel) => {
     const context = getActiveContext(currctJupyterModel)
 
-    if(context.length == 0){
+    if (context.length == 0) {
         return [null, null]
     }
 
@@ -266,7 +295,7 @@ const getCellContentTextRequiredForOpenAI = (currctJupyterModel) => {
 function getCellContentTextRequiredForBigCode(currctJupyterModel) {
     const context = getActiveContext(currctJupyterModel)
 
-    if(context.length == 0){
+    if (context.length == 0) {
         return [null, null]
     }
 
@@ -313,7 +342,38 @@ const getCellContentText = (checkedMode, currctJupyterModel) => {
     }
 }
 
+utility.showNormalCode = (codeToFill, activeRequestTextarea) => {
+    // get cursor element
+    const cursorElement = activeRequestTextarea.parentElement.parentElement.querySelector('div.CodeMirror-cursor')
+    const style = window.getComputedStyle(cursorElement);
+    // Which line
+    const lineIndex = Math.round(parseFloat(style.getPropertyValue('top')) / 17)
+    // Obtain element for all line
+    const linesElement = activeRequestTextarea.parentElement.parentElement.getElementsByClassName('CodeMirror-line')
+    // the code span elements for this active line
+    const currectLineSpanList = linesElement[lineIndex].querySelectorAll('span span')
 
+    // deprecate：Set the animated font dom element when it waits 
+    // As a code hint carrier
+    const codeCarrierElement = document.createElement('span');
+
+    codeCarrierElement.classList.add("per-insert-code")
+    codeCarrierElement.style.color = 'grey';
+
+    // Insert gray code hints, If the active line has no span tag
+    if (currectLineSpanList.length == 0) {
+        const withAllCodeSpan = linesElement[lineIndex].querySelectorAll('span')
+        // creates an element in a unique code carrier, as long as the mouse exists, the code carrier exists
+        withAllCodeSpan[withAllCodeSpan.length - 1].appendChild(codeCarrierElement)
+    } else {
+        // Insert new hint code in the last code span
+        const withAllCodeSpan = linesElement[lineIndex].childNodes
+        withAllCodeSpan[withAllCodeSpan.length - 1].insertAdjacentElement('afterend', codeCarrierElement);
+    }
+    codeCarrierElement.innerHTML = codeToFill
+
+
+}
 
 utility.insertSuggestion = (suggestion, activeRequestTextarea) => {
     // Focus the textarea, otherwise, it is not possible to insert the suggestion using the Tab key from another location
@@ -509,7 +569,7 @@ utility.getCodeFormat = (checkedMode, currctJupyterModel, requestType) => {
 const viewDiffCode = (html, activeRequestTextarea) => {
     disableCellCode(activeRequestTextarea)
     const activeCell = activeRequestTextarea.parentElement.parentElement;
-  
+
     // Due to the need to hide user code, the previous preview logic cannot be used
     const codeMirrorCode = activeCell.querySelector(".CodeMirror-code")
     const codeMirrorCodeLine = document.createElement('pre');
@@ -526,9 +586,9 @@ const generateCompareCodesWrapper = (prompt, result) => {
     return generateCompareCodes(preCode, result)
 }
 
-utility.viewCodeResult = (suggestion, animationElement, codeFormat, requestType, activeRequestTextarea) => {
+utility.viewCodeResult = (suggestion, codeFormat, requestType, activeRequestTextarea) => {
     switch (requestType) {
-        case "normal": animationElement.innerHTML = suggestion; break;
+        case "normal": utility.showNormalCode(suggestion, activeRequestTextarea); break;
         case "fixBug": viewDiffCode(generateCompareCodesWrapper(codeFormat, suggestion), activeRequestTextarea); break;
     }
 }
@@ -572,15 +632,15 @@ utility.insertSuggestionFixBug = (suggestion, activeRequestTextarea, currctJupyt
     const [cellContent, cursorAtEndInLine] = getActiveCellPointerCode(activeRequestTextarea.parentElement.parentElement, 0, currctJupyterModel)
 
     for (let index = 0; index < cellContent.length; index++) {
-        if (cellContent[index].type == "output"){
+        if (cellContent[index].type == "output") {
             continue
         }
-        
+
         for (let j = 0; j <= cellContent[index].content.length; j++) {
             simulateUserPressingMoveMouseRight(activeRequestTextarea)
             simulateUserPressingBackspace(activeRequestTextarea)
         }
-        
+
     }
     utility.enableCellCode(activeRequestTextarea)
 
@@ -595,10 +655,30 @@ utility.insertSuggestionFixBug = (suggestion, activeRequestTextarea, currctJupyt
 utility.clearShowcasingCode = (activeRequestTextarea) => {
     utility.enableCellCode(activeRequestTextarea)
     const activeCell = activeRequestTextarea.parentElement.parentElement;
-  
+
     // Due to the need to hide user code, the previous preview logic cannot be used
     const displayedCodeElement = activeCell.querySelector(".displayed")
-    if(displayedCodeElement) displayedCodeElement.remove();
+    if (displayedCodeElement) displayedCodeElement.remove();
 }
 
+utility.checkCodeEquality = (eventCode, codeToFill) => {
+    return eventCode.key == codeToFill[0]
+}
+
+let pairShortcutKey = new Set(['(', '{', '[', '\'', '"'])
+utility.isShortcutKeyChar = (eventCode, activeRequestTextarea, recordCodeEqualPairShortcutKey) => {
+
+    if (pairShortcutKey.has(eventCode)) {
+        if(recordCodeEqualPairShortcutKey.has(eventCode)) {
+            if(!recordCodeEqualPairShortcutKey[eventCode]) {
+                recordCodeEqualPairShortcutKey[eventCode] = !recordCodeEqualPairShortcutKey[eventCode]
+                simulateUserPressingMoveMouseRight(activeRequestTextarea)
+                simulateUserPressingBackspace(activeRequestTextarea)
+            }
+            return
+        }
+        simulateUserPressingMoveMouseRight(activeRequestTextarea)
+        simulateUserPressingBackspace(activeRequestTextarea)
+    }
+}
 window.utility = utility

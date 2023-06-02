@@ -26,7 +26,7 @@
   const { utility, animation, state, api, preferences } = window;
 
 
-  const mainProcess = async () => {
+  const mainProcess = async (isAutoRequest = false) => {
     //Obtain the Textarea of the current input box
     const activeTextarea = document.activeElement;
 
@@ -50,14 +50,14 @@
     const requestType = state.requestType
 
     // Retrieve the content of the active cell 
-    const [code, isLastLine] = utility.getCodeFormat(checkedMode, currctJupyterModel, requestType);
-
+    let [code, isLastLine] = utility.getCodeFormat(checkedMode, currctJupyterModel, requestType);
+    isAutoRequest ? isLastLine = false : null
 
     if (!code) return;
 
     if (activeCell) {
       // Start Animation
-      const [animationInterval, animationElement, activeCellElement] = animation.startWaitingAnimation(activeCell)
+      const [animationInterval, activeCellElement] = animation.startWaitingAnimation(activeCell)
       state.isRequestInProgress = true
 
       let suggestion;
@@ -112,7 +112,7 @@
         state.isRequestInProgress = false
         state.codeToFill = suggestion
 
-        utility.viewCodeResult(suggestion, animationElement, code, requestType, activeTextarea)
+        utility.viewCodeResult(suggestion, code, requestType, activeTextarea)
 
       }
     }
@@ -155,6 +155,50 @@
     }
   }
 
+  const autoRequestCode = (eventCode) => {
+    // If there is no code hint
+    if (document.querySelectorAll(".per-insert-code").length == 0 || document.querySelectorAll(".displayed").length == 0) {
+      state.isRequestSuccessful = false
+    }
+    
+    // If there is code hint
+    if (document.querySelectorAll(".per-insert-code").length != 0) {
+
+      // Check that the input code matches the next character of the code prompt
+      const chekcResult = utility.checkCodeEquality(eventCode, state.codeToFill)
+      
+      if (chekcResult) {
+        state.codeToFill = state.codeToFill.slice(1)
+
+        // Moves the current code to the bottom of the CPU time slice queue, Place the jupyer default event before this method
+        const timeOut = setTimeout(() => {
+          utility.isShortcutKeyChar(eventCode.key, state.activeRequestTextarea, state.recordCodeEqualPairShortcutKey)
+          utility.showNormalCode(state.codeToFill, state.activeRequestTextarea)
+          clearTimeout(timeOut)
+        },0)
+      }
+      return
+    }
+
+    if (state.isRequestInProgress || state.isRequestSuccessful) {
+      return
+    }
+
+    if (state.autoRequestTimeout) {
+      clearTimeout(state.autoRequestTimeout);
+    }
+
+    // Set a new timeout for 0.8 seconds. After my test, the 0.8s delay is the most user-friendly
+    state.autoRequestTimeout = setTimeout(async () => {
+      if (state.isRequestInProgress || state.isRequestSuccessful) {
+        return
+      }
+
+      state.requestType = "normal"
+      await mainProcess(isAutoRequest = true)
+    }, 800);
+  }
+
 
   const requestCodeKeyListener = async (event) => {
     // Check if the Ctrl + Space keys were pressed
@@ -177,10 +221,11 @@
       await mainProcess()
       
     } else if (!event.ctrlKey) {  // Press all buttons except ctrl, cancel if fixbug is being displayed
-
       undisplayedCodeDiff()
-
+      autoRequestCode(event)
     }
+
+
 
 
   }
@@ -189,7 +234,7 @@
     document.addEventListener('keydown', requestCodeKeyListener);
     document.addEventListener('keydown', fillCodeKeyListener);
     document.addEventListener("mousedown", undisplayedCodeDiff)
-
+    
   }
 
 

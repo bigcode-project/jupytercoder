@@ -66,34 +66,7 @@ animation.startWaitingAnimation = (activeTextarea) => {
   // Add a new <style> element to the <head> element
   document.head.appendChild(styleElement);
 
-  // get cursor element
-  const cursorElement = activeTextarea.querySelector('div.CodeMirror-cursor')
-  const style = window.getComputedStyle(cursorElement);
-  // Which line
-  const lineIndex = Math.round(parseFloat(style.getPropertyValue('top')) / 17)
-  // Obtain element for all line
-  const linesElement = activeTextarea.getElementsByClassName('CodeMirror-line')
-  // the code span elements for this active line
-  const currectLineSpanList = linesElement[lineIndex].querySelectorAll('span span')
-
-  // deprecate：Set the animated font dom element when it waits 
-  // As a code hint carrier
-  const animationElement = document.createElement('span');
-
-  animationElement.classList.add("per-insert-code")
-  animationElement.style.color = 'grey';
-
-  // Insert gray code hints, If the active line has no span tag
-  if (currectLineSpanList.length == 0) {
-    const withAllCodeSpan = linesElement[lineIndex].querySelectorAll('span')
-    // creates an element in a unique code carrier, as long as the mouse exists, the code carrier exists
-    withAllCodeSpan[withAllCodeSpan.length - 1].appendChild(animationElement)
-  } else {
-    // Insert new hint code in the last code span
-    const withAllCodeSpan = linesElement[lineIndex].childNodes
-    withAllCodeSpan[withAllCodeSpan.length - 1].insertAdjacentElement('afterend', animationElement);
-  }
-
+  
 
   // Waiting steps, 0.333 seconds per step
   let timeLeft = 90;
@@ -107,7 +80,7 @@ animation.startWaitingAnimation = (activeTextarea) => {
     }
 
   }, 333)
-  return [animationInterval, animationElement, activeCellParentElement]
+  return [animationInterval, activeCellParentElement]
 }
 
 
