@@ -84,7 +84,7 @@ api.sendToBigcode = async (code, url, token, isLastLine) => {
         parameters: {
             return_full_text: false,
             stop: ["<jupyter_output>"],
-            max_new_tokens: 500
+            max_new_tokens: 200
         },
         
     }
