@@ -225,7 +225,7 @@ const judgeIsTheLastLine = (context, currrntIndex) => {
 
     return true
 }
-
+ 
 
 
 const getCellContentTextRequiredForOpenAI = (currctJupyterModel) => {
@@ -575,7 +575,7 @@ utility.insertSuggestionFixBug = (suggestion, activeRequestTextarea, currctJupyt
         if (cellContent[index].type == "output"){
             continue
         }
-        for (let j = 0; j < cellContent[index].content.length; j++) {
+        for (let j = 0; j < cellContent[index].content.length + cellContent.length*3; j++) {
             simulateUserPressingMoveMouseRight(activeRequestTextarea)
             simulateUserPressingBackspace(activeRequestTextarea)
         }
