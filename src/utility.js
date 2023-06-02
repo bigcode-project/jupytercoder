@@ -575,7 +575,8 @@ utility.insertSuggestionFixBug = (suggestion, activeRequestTextarea, currctJupyt
         if (cellContent[index].type == "output"){
             continue
         }
-        for (let j = 0; j < cellContent[index].content.length + cellContent.length*3; j++) {
+        // cellContent.length*3 => Each line of jupyter may have empty values, occupying three lengths，But it may not necessarily appear, as this code generally deletes all the code within the cell, so there is no difference in usage
+        for (let j = 0; j < cellContent[index].content.length + cellContent.length * 3; j++) {
             simulateUserPressingMoveMouseRight(activeRequestTextarea)
             simulateUserPressingBackspace(activeRequestTextarea)
         }
