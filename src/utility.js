@@ -573,7 +573,7 @@ const viewDiffCode = (html, activeRequestTextarea) => {
     // Due to the need to hide user code, the previous preview logic cannot be used
     const codeMirrorCode = activeCell.querySelector(".CodeMirror-code")
     const codeMirrorCodeLine = document.createElement('pre');
-    codeMirrorCodeLine.classList.add("CodeMirror-line", "displayed")
+    codeMirrorCodeLine.classList.add("CodeMirror-line", "displayed", "per-insert-code")
 
     codeMirrorCodeLine.innerHTML = html
     codeMirrorCode.appendChild(codeMirrorCodeLine)

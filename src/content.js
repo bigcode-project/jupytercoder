@@ -121,13 +121,14 @@
 
   // Adds an event listener for filling in code after the request is completed
   const fillCodeKeyListener = (event) => {
+    console.log("a");
     if (event.ctrlKey && !state.isRequestInProgress && state.isRequestSuccessful) {
       event.preventDefault();
 
       // Get the previously existing animated text element (if any)
       // If it doesn't exist, it's assumed that the user doesn't need the code
       const animationElementList = document.querySelectorAll(".per-insert-code");
-
+    
       // If the animated text element exists, it's assumed that the user wants to insert the code into the code block
       if (animationElementList.length === 1) {
         // delete animation element
