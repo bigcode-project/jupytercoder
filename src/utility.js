@@ -417,8 +417,8 @@ const generateCompareCodesText = (codeFormat, suggestion) =>{
     const preCode = preCodeMesageSplit[0].slice(15)
     
     let html = []
-    const diff = Diff.diffLines(preCode, suggestion)
-  
+    const diff = Diff.diffChars(preCode, suggestion)
+ 
     diff.forEach((part) => {
         let blockContent = part.value
        
@@ -431,7 +431,7 @@ const generateCompareCodesText = (codeFormat, suggestion) =>{
         }
 
     });
-    
+
     return html.join('')
 }
 
