@@ -420,15 +420,15 @@ const generateCompareCodesText = (codeFormat, suggestion) =>{
     const diff = Diff.diffLines(preCode, suggestion)
   
     diff.forEach((part) => {
-        let lineContent = part.value
-        lineContent = /\n$/.test(lineContent) ? lineContent.slice(0, -1) : lineContent
+        let blockContent = part.value
+        blockContent = /\n$/.test(blockContent) ? blockContent.slice(0, -1) : blockContent
        
         if (part.added){
-            html.push(`<span style="color: green;">${lineContent}</span>`)
+            html.push(`<span style="color: green;">${blockContent}</span>`)
         }else if(part.removed){
-            html.push(`<span style="color: red;">${lineContent}</span>`)
+            html.push(`<span style="color: red;">${blockContent}</span>`)
         }else{
-            html.push(`<span style="color: grey;">${lineContent}</span>`)
+            html.push(`<span style="color: grey;">${blockContent}</span>`)
         }
 
     });
