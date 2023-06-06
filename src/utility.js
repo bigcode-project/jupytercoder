@@ -421,7 +421,6 @@ const generateCompareCodesText = (codeFormat, suggestion) =>{
   
     diff.forEach((part) => {
         let blockContent = part.value
-        blockContent = /\n$/.test(blockContent) ? blockContent.slice(0, -1) : blockContent
        
         if (part.added){
             html.push(`<span style="color: green;">${blockContent}</span>`)
@@ -433,7 +432,7 @@ const generateCompareCodesText = (codeFormat, suggestion) =>{
 
     });
     
-    return html.join('\n')
+    return html.join('')
 }
 
 utility.viewCodeResult = (suggestion, animationElement, codeFormat, requestType, activeRequestTextarea) => {
