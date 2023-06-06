@@ -24,8 +24,7 @@
 
 
   const { utility, animation, state, api, preferences } = window;
-
-
+  
   const mainProcess = async () => {
     //Obtain the Textarea of the current input box
     const activeTextarea = document.activeElement;
@@ -82,7 +81,8 @@
           case "BigCode":
             const bigCodeUrl = await preferences.getBigcodeServiceUrl()
             const huggingfaceAccessToken = await preferences.getHuggingfaceApiKey()
-            suggestion = await api.sendToBigcode(code, bigCodeUrl, huggingfaceAccessToken, isLastLine)
+            const requestType = state.requestType
+            suggestion = await api.sendToBigcode(code, bigCodeUrl, huggingfaceAccessToken, isLastLine, requestType)
             break;
         }
 

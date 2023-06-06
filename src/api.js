@@ -69,7 +69,7 @@ api.sendToOpenAI = async (prompt, apiKey, modelType, isLastLine) => {
 }
 
 
-api.sendToBigcode = async (code, url, token, isLastLine) => {
+api.sendToBigcode = async (code, url, token, isLastLine, requestType) => {
     if (!url || !token) {
         alert("BigCode service URL or Huggingface Access Token not set.");
         return "";
@@ -83,11 +83,13 @@ api.sendToBigcode = async (code, url, token, isLastLine) => {
         stream: false,
         parameters: {
             return_full_text: false,
-            stop: ["<jupyter_output>"],
-            max_new_tokens: 200
+            stop: ["<jupyter_output>"]
         },
         
     }
+   
+    bodyData.parameters["max_new_tokens"] = requestType == "fixBug" ? 200 : 20
+
 
     if (!isLastLine){
         bodyData.parameters.stop.push("\n")
