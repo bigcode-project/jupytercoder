@@ -30,6 +30,7 @@
         "src/preferences.js",
         "src/utility.js",
         "src/animation.js",
+        "src/diff.js",
         "src/content.js"
       ],
       "css": [

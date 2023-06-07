@@ -24,11 +24,14 @@
 
 
   const { utility, animation, state, api, preferences } = window;
-
-
+  
   const mainProcess = async () => {
     //Obtain the Textarea of the current input box
     const activeTextarea = document.activeElement;
+
+    if (activeTextarea.tagName != "TEXTAREA"){
+      return
+    }
 
     state.activeRequestTextarea = activeTextarea
 
@@ -36,15 +39,18 @@
     const activeCell = activeTextarea.parentElement.parentElement
 
     const checkedMode = await preferences.getCheckedMode()
-    if (!checkedMode){
+
+    if (!checkedMode) {
       alert("Please save your settings!")
       return
     }
 
     const currctJupyterModel = state.currctJupyterModel
+    const requestType = state.requestType
 
     // Retrieve the content of the active cell 
-    const [code, isLastLine] = utility.getCellContentText(checkedMode, currctJupyterModel);
+    const [code, isLastLine] = utility.getCodeFormat(checkedMode, currctJupyterModel, requestType);
+
 
     if (!code) return;
 
@@ -57,8 +63,16 @@
       // Deal with a series of problems such as network
       try {
 
-        switch (checkedMode) { 
+        switch (checkedMode) {
           case "OpenAI":
+            // Openai does not support fixing bugs
+            if (state.requestType == "fixBug") {
+              clearInterval(animationInterval)
+              activeCellElement.classList.remove('before-content')
+              state.isRequestInProgress = false
+              return
+            }
+
             const apikey = await preferences.getOpenAIKey()
             const GPTModelType = await preferences.getGPTModelType()
             suggestion = await api.sendToOpenAI(code, apikey, GPTModelType, isLastLine)
@@ -67,7 +81,8 @@
           case "BigCode":
             const bigCodeUrl = await preferences.getBigcodeServiceUrl()
             const huggingfaceAccessToken = await preferences.getHuggingfaceApiKey()
-            suggestion = await api.sendToBigcode(code, bigCodeUrl, huggingfaceAccessToken, isLastLine)
+            const requestType = state.requestType
+            suggestion = await api.sendToBigcode(code, bigCodeUrl, huggingfaceAccessToken, isLastLine, requestType)
             break;
         }
 
@@ -97,11 +112,12 @@
         state.isRequestInProgress = false
         state.codeToFill = suggestion
 
-        // Replace the content of the text animation box with code
-        animationElement.innerHTML = suggestion
+        utility.viewCodeResult(suggestion, animationElement, code, requestType, activeTextarea)
+
       }
     }
   }
+
 
   // Adds an event listener for filling in code after the request is completed
   const fillCodeKeyListener = (event) => {
@@ -111,13 +127,22 @@
       // Get the previously existing animated text element (if any)
       // If it doesn't exist, it's assumed that the user doesn't need the code
       const animationElementList = document.querySelectorAll(".per-insert-code");
-
+  
       // If the animated text element exists, it's assumed that the user wants to insert the code into the code block
-      if (animationElementList.length === 1) {
-        // delete animation element
-        animationElementList[0].remove()
+      if (animationElementList.length >= 1) {
 
-        utility.insertSuggestion(state.codeToFill, state.activeRequestTextarea);
+        // delete animation element
+        animationElementList.forEach(element => {
+          element.remove()
+        })
+        
+        // request type "normal" or "fixBug"
+        if (state.requestType == "normal") {
+          utility.insertSuggestion(state.codeToFill, state.activeRequestTextarea);
+        } else if (state.requestType == "fixBug") {
+          utility.insertSuggestionFixBug(state.codeToFill, state.activeRequestTextarea, state.currctJupyterModel)
+        }
+
       }
 
       // Reset the request successful flag
@@ -125,24 +150,49 @@
     }
   };
 
+
+  const undisplayedCodeDiff = () => {
+    if (state.isRequestSuccessful) {
+      state.isRequestSuccessful = false
+      utility.clearShowcasingCode(state.activeRequestTextarea)
+    }
+  }
+
+
   const requestCodeKeyListener = async (event) => {
     // Check if the Ctrl + Space keys were pressed
     if (event.ctrlKey && event.code === 'Space') {
       // Block default events
       event.preventDefault();
 
-      if (state.isRequestInProgress || state.isRequestSuccessful) {
-        return
-      }
+      if (state.isRequestInProgress || state.isRequestSuccessful) return
 
+      state.requestType = "normal"
       await mainProcess()
 
+    } else if (event.ctrlKey && event.code === 'Backquote') {
+      // Block default events
+      event.preventDefault();
+
+      if (state.isRequestInProgress || state.isRequestSuccessful) return
+
+      state.requestType = "fixBug"
+      await mainProcess()
+      
+    } else if (!event.ctrlKey) {  // Press all buttons except ctrl, cancel if fixbug is being displayed
+
+      undisplayedCodeDiff()
+
     }
+
+
   }
 
   const montedEventListener = () => {
     document.addEventListener('keydown', requestCodeKeyListener);
     document.addEventListener('keydown', fillCodeKeyListener);
+    document.addEventListener("mousedown", undisplayedCodeDiff)
+
   }
 
 
