@@ -4,12 +4,14 @@ Starcoder has its unique capacity to leverage the jupyter notebook structure to 
 
 ## Key features
 ### code completition
-In a empty cell, press "ctrl + space" to trigger 
+In a cell, press "ctrl + space" to trigger 
+![image](https://github.com/bigcode-project/jupytercoder/assets/6381544/14331c44-59b9-4a86-9f75-1238f3da4854)
 
-Press "ctrl" to accpet
+Press "ctrl" to accpet the proposition.
 
 ### Bug fix
 In a cell with error message, press "ctrl + `" to trigger the bug fix mode
+![image](https://github.com/bigcode-project/jupytercoder/assets/6381544/f2c630b7-c767-40a9-96de-78b766a29a93)
 
 Press ctrl to accept
 
