@@ -76,12 +76,12 @@ api.sendToBigcode = async (code, url, token, isLastLine, requestType) => {
     }
 
     const prompt = code.replace(/\u200B/g, '')
-    
 
     const bodyData = {
         inputs: prompt,
         stream: false,
         parameters: {
+            temperature: 0.01,
             return_full_text: false,
             stop: ["<jupyter_output>"]
         },
@@ -105,7 +105,6 @@ api.sendToBigcode = async (code, url, token, isLastLine, requestType) => {
     })
 
     const data = await response.json();
-
     return data[0] ? cleanUpBigcodeOutput(data[0].generated_text, isLastLine) : ""
 }
 
