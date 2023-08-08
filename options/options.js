@@ -15,10 +15,9 @@ function getSelectedRadioValue() {
   return selectedValue;
 }
 
-
 // Save the API key when the Save button is clicked
 document.getElementById("save").addEventListener("click", () => {
-  chrome.storage.sync.set({
+  browser.storage.local.set({
     openAIKey: document.getElementById("apiKey").value,
     bigcodeServiceUrl: document.getElementById("bigcodeServiceUrl").value,
     huggingfaceAccessToken: document.getElementById("huggingfaceAccessToken").value,
@@ -29,19 +28,19 @@ document.getElementById("save").addEventListener("click", () => {
   })
 });
 
-chrome.storage.sync.get("openAIKey", (data) => {
+browser.storage.local.get("openAIKey", (data) => {
   if (data.openAIKey) {
     document.getElementById("apiKey").value = data.openAIKey;
   }
 });
 
-chrome.storage.sync.get("huggingfaceAccessToken", (data) => {
+browser.storage.local.get("huggingfaceAccessToken", (data) => {
   if (data.huggingfaceAccessToken) {
     document.getElementById("huggingfaceAccessToken").value = data.huggingfaceAccessToken;
   }
 });
 
-chrome.storage.sync.get("bigcodeServiceUrl", (data) => {
+browser.storage.local.get("bigcodeServiceUrl", (data) => {
   if (data.bigcodeServiceUrl) {
     document.getElementById("bigcodeServiceUrl").value = data.bigcodeServiceUrl;
   } else {
@@ -49,13 +48,13 @@ chrome.storage.sync.get("bigcodeServiceUrl", (data) => {
   }
 });
 
-chrome.storage.sync.get("modelType", (data) => {
+browser.storage.local.get("modelType", (data) => {
   if (data.modelType) {
     select.value = data.modelType
   }
 })
 
-chrome.storage.sync.get("checkedMode", (data) => {
+browser.storage.local.get("checkedMode", (data) => {
   if (data.checkedMode && data.checkedMode == "OpenAI") {
     document.getElementsByClassName('input-key')[0].classList.toggle("input-hidden")
     document.getElementsByClassName('input-key')[1].classList.toggle("input-hidden")
@@ -83,5 +82,3 @@ radioButtons.forEach(radioButton => {
     }
   });
 });
-
-

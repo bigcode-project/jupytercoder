@@ -9,28 +9,29 @@
     "128": "icons/flow_256.png"
   },
   "permissions": [
-    "storage"
+    "storage",
+    "runtime"
   ],
   "action": {
     "default_popup": "options/options.html"
   },
   "background": {
-    "service_worker": "background.js"
+    "scripts": ["background.js"]
   },
   "content_scripts": [
     {
       "matches": [
         "*://*.jupyter.org/*",
-        "*://localhost:*/*",
-        "*://127.0.0.1:*/*"
+        "*://localhost/*",
+        "*://127.0.0.1/*"
       ],
       "js": [
         "src/api.js",
         "src/state.js",
         "src/preferences.js",
-        "src/utility.js",
         "src/animation.js",
         "src/diff.js",
+        "src/utility.js",
         "src/content.js"
       ],
       "css": [

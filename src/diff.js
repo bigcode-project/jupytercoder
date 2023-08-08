@@ -1586,5 +1586,7 @@
   exports.structuredPatch = structuredPatch;
 
   Object.defineProperty(exports, '__esModule', { value: true });
-
+  
+  Diff.diffChars = diffChars
+  window.Diff = Diff
 })));

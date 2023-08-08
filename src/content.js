@@ -24,11 +24,11 @@
 
 
   const { utility, animation, state, api, preferences } = window;
-  
+
   const mainProcess = async () => {
     //Obtain the Textarea of the current input box
     const activeTextarea = document.activeElement;
-
+   
     if (activeTextarea.tagName != "TEXTAREA"){
       return
     }
@@ -102,7 +102,7 @@
         }, 5000)
         return
       }
-
+    
       if (suggestion || suggestion === "") {
         clearInterval(animationInterval)
         // cancel animation element
@@ -121,9 +121,10 @@
 
   // Adds an event listener for filling in code after the request is completed
   const fillCodeKeyListener = (event) => {
-    if (event.ctrlKey && !state.isRequestInProgress && state.isRequestSuccessful) {
+    
+    if (event.code == "ControlLeft" && !state.isRequestInProgress && state.isRequestSuccessful) {
       event.preventDefault();
-
+    
       // Get the previously existing animated text element (if any)
       // If it doesn't exist, it's assumed that the user doesn't need the code
       const animationElementList = document.querySelectorAll(".per-insert-code");
@@ -179,10 +180,8 @@
       state.requestType = "fixBug"
       await mainProcess()
       
-    } else if (!event.ctrlKey) {  // Press all buttons except ctrl, cancel if fixbug is being displayed
-
+    } else if (!event.code == "ControlLeft") {  // Press all buttons except ctrl, cancel if fixbug is being displayed
       undisplayedCodeDiff()
-
     }
 
 

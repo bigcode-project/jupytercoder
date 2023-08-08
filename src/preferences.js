@@ -9,12 +9,11 @@ const preferences = {
     async getCheckedMode() { },
     // get the GPT model selected by the user
     async getGPTModelType() { },
-    
 }
 
 preferences.getOpenAIKey = async () => {
     return new Promise((resolve) => {
-        chrome.runtime.sendMessage({ type: "getOpenAIKey" }, (response) => {
+        browser.runtime.sendMessage({ type: "getOpenAIKey" }).then((response) => {
             resolve(response.openAIKey);
         });
     });
@@ -22,7 +21,7 @@ preferences.getOpenAIKey = async () => {
 
 preferences.getGPTModelType = async () => {
     return new Promise((resolve) => {
-        chrome.runtime.sendMessage({ type: "getGPTModelType" }, (response) => {
+        browser.runtime.sendMessage({ type: "getGPTModelType" }).then((response) => {
             resolve(response.modelType);
         });
     });
@@ -30,7 +29,7 @@ preferences.getGPTModelType = async () => {
 
 preferences.getBigcodeServiceUrl = async () => {
     return new Promise((resolve) => {
-        chrome.runtime.sendMessage({ type: "getBigcodeServiceUrl" }, (response) => {
+        browser.runtime.sendMessage({ type: "getBigcodeServiceUrl" }).then((response) => {
             resolve(response.bigcodeServiceUrl);
         });
     });
@@ -38,20 +37,18 @@ preferences.getBigcodeServiceUrl = async () => {
 
 preferences.getCheckedMode = async () => {
     return new Promise((resolve) => {
-        chrome.runtime.sendMessage({ type: "getCheckedMode" }, (response) => {
+        browser.runtime.sendMessage({ type: "getCheckedMode" }).then((response) => {
             resolve(response.checkedMode);
         });
     });
 }
 
-
 preferences.getHuggingfaceApiKey = async () => {
     return new Promise((resolve) => {
-        chrome.runtime.sendMessage({ type: "getHuggingfaceAccessToken" }, (response) => {
-            resolve(response.huggingfaceAccessToken)
-        })
-    })
+        browser.runtime.sendMessage({ type: "getHuggingfaceAccessToken" }).then((response) => {
+            resolve(response.huggingfaceAccessToken);
+        });
+    });
 }
 
-
-window.preferences = preferences
+window.preferences = preferences;
