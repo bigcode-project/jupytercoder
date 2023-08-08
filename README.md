@@ -15,6 +15,22 @@ In a cell with error message, press "ctrl + `" to trigger the bug fix mode
 
 Press ctrl to accept
 
+## Load extension for Firefox (Development)
+
+### Requirement
+- Node version 18+
+  
+### Install
+- Clone this repository
+
+- ```npm install -g web-ext```
+
+- ```web-ext run```
+
+- Check "Always allow on localhost" on the Firefox this extension page
+
+
+
 ## Install the chrome extension
 https://chrome.google.com/webstore/detail/jupyter-coder/kbedojkmlknhepcaggkdimefcbiifkjf
 
