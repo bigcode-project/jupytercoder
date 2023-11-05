@@ -54,9 +54,24 @@ const loadCss = `
   }
 `;
 
+animation.addAnimationToLineDom = (lineDom, insertText) => {
+  const removeToElements = lineDom.querySelectorAll('.per-insert-code');
 
+  removeToElements.forEach((element) => {
+      element.parentNode.removeChild(element);
+  });
 
-animation.startWaitingAnimation = (activeTextarea) => {
+  const animationElement = document.createElement('span');
+  animationElement.textContent = insertText
+  animationElement.classList.add("per-insert-code")
+  animationElement.style.color = 'grey';
+
+  lineDom.appendChild(animationElement)
+
+  return animationElement
+}
+
+animation.startWaitingAnimation = (activeTextarea, currctJupyterModel) => {
   const activeCellParentElement = activeTextarea.parentElement.parentElement.parentElement;
 
   // Create a new <style> element
@@ -67,33 +82,12 @@ animation.startWaitingAnimation = (activeTextarea) => {
   document.head.appendChild(styleElement);
 
   // get cursor element
-  const cursorElement = activeTextarea.querySelector('div.CodeMirror-cursor')
+  const cursorElement = activeTextarea.querySelector(`div.${currctJupyterModel.requiredClassName.cursor}`)
   const style = window.getComputedStyle(cursorElement);
   // Which line
   const lineIndex = Math.round(parseFloat(style.getPropertyValue('top')) / 17)
   // Obtain element for all line
-  const linesElement = activeTextarea.getElementsByClassName('CodeMirror-line')
-  // the code span elements for this active line
-  const currectLineSpanList = linesElement[lineIndex].querySelectorAll('span span')
-
-  // deprecate：Set the animated font dom element when it waits 
-  // As a code hint carrier
-  const animationElement = document.createElement('span');
-
-  animationElement.classList.add("per-insert-code")
-  animationElement.style.color = 'grey';
-
-  // Insert gray code hints, If the active line has no span tag
-  if (currectLineSpanList.length == 0) {
-    const withAllCodeSpan = linesElement[lineIndex].querySelectorAll('span')
-    // creates an element in a unique code carrier, as long as the mouse exists, the code carrier exists
-    withAllCodeSpan[withAllCodeSpan.length - 1].appendChild(animationElement)
-  } else {
-    // Insert new hint code in the last code span
-    const withAllCodeSpan = linesElement[lineIndex].childNodes
-    withAllCodeSpan[withAllCodeSpan.length - 1].insertAdjacentElement('afterend', animationElement);
-  }
-
+  const linesElement = activeTextarea.getElementsByClassName(`${currctJupyterModel.requiredClassName.lines}`)
 
   // Waiting steps, 0.333 seconds per step
   let timeLeft = 90;
@@ -105,9 +99,8 @@ animation.startWaitingAnimation = (activeTextarea) => {
       activeCellParentElement.classList.remove('before-content');
       clearInterval(animationInterval)
     }
-
   }, 333)
-  return [animationInterval, animationElement, activeCellParentElement]
+  return [animationInterval, activeCellParentElement, linesElement[lineIndex]]
 }
 
 

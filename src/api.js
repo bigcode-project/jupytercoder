@@ -77,6 +77,7 @@ api.sendToBigcode = async (code, url, token, isLastLine, requestType) => {
 
     const prompt = code.replace(/\u200B/g, '')
 
+    console.debug("prompt", JSON.stringify(prompt));
     const bodyData = {
         inputs: prompt,
         stream: false,
@@ -104,6 +105,10 @@ api.sendToBigcode = async (code, url, token, isLastLine, requestType) => {
         body: JSON.stringify(bodyData)
     })
 
+    if (!response.ok){
+        throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    
     const data = await response.json();
     return data[0] ? cleanUpBigcodeOutput(data[0].generated_text, isLastLine) : ""
 }

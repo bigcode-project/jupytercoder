@@ -7,7 +7,9 @@
       verify: "code_cell",
       output: "output_subarea",
       text: "text_cell",
-      textOutput: "text_cell_render"
+      textOutput: "text_cell_render",
+      cursor: "CodeMirror-cursor",
+      lines: "CodeMirror-line:not(.displayed)"
     }
   }
 
@@ -18,7 +20,9 @@
       verify: "jp-CodeCell",
       output: "jp-Cell-outputWrapper",
       text: "jp-MarkdownCell",
-      textOutput: "jp-RenderedMarkdown"
+      textOutput: "jp-RenderedMarkdown",
+      cursor: "cm-cursor",
+      lines: "cm-line"
     }
   }
 
@@ -28,8 +32,7 @@
   const mainProcess = async () => {
     //Obtain the Textarea of the current input box
     const activeTextarea = document.activeElement;
-
-    if (activeTextarea.tagName != "TEXTAREA"){
+    if (activeTextarea.tagName != "TEXTAREA" && state.currctJupyterModel.name != "lab"){
       return
     }
 
@@ -39,7 +42,6 @@
     const activeCell = activeTextarea.parentElement.parentElement
 
     const checkedMode = await preferences.getCheckedMode()
-
     if (!checkedMode) {
       alert("Please save your settings!")
       return
@@ -51,12 +53,12 @@
     // Retrieve the content of the active cell 
     const [code, isLastLine] = utility.getCodeFormat(checkedMode, currctJupyterModel, requestType);
 
-
+    console.log(code, isLastLine);
     if (!code) return;
 
     if (activeCell) {
       // Start Animation
-      const [animationInterval, animationElement, activeCellElement] = animation.startWaitingAnimation(activeCell)
+      const [animationInterval, activeCellElement, lineElement] = animation.startWaitingAnimation(activeCell, currctJupyterModel)
       state.isRequestInProgress = true
 
       let suggestion;
@@ -104,6 +106,8 @@
       }
 
       if (suggestion || suggestion === "") {
+        const animationElement = animation.addAnimationToLineDom(lineElement, suggestion)
+
         clearInterval(animationInterval)
         // cancel animation element
         activeCellElement.classList.remove('before-content')
@@ -111,8 +115,8 @@
         state.isRequestSuccessful = true
         state.isRequestInProgress = false
         state.codeToFill = suggestion
-
-        utility.viewCodeResult(suggestion, animationElement, code, requestType, activeTextarea)
+        console.log(animationElement);
+        // utility.viewCodeResult(suggestion, animationElement, code, requestType, activeTextarea)
 
       }
     }
@@ -161,12 +165,10 @@
 
   const requestCodeKeyListener = async (event) => {
     // Check if the Ctrl + Space keys were pressed
-    if (event.ctrlKey && event.code === 'Space') {
+    if (event.shiftKey && event.code === 'Space') {
       // Block default events
       event.preventDefault();
-
       if (state.isRequestInProgress || state.isRequestSuccessful) return
-
       state.requestType = "normal"
       await mainProcess()
 

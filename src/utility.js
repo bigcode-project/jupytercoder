@@ -88,52 +88,57 @@ const getCellCode = (cellElement, cellIndex, currctJupyterModel) => {
     return cellContent;
 }
 
+function containsSingleBr(divElement) {
+    const brTags = divElement.querySelectorAll('br');
+    return brTags.length === 1;
+}
 
 const getActiveCellPointerCode = (activeCell, cellIndex, currctJupyterModel) => {
     let cellContent = []
 
     // get cursor element
-    const cursorElement = activeCell.querySelector('div.CodeMirror-cursor')
-
+    const cursorElement = activeCell.querySelector(`div.${currctJupyterModel.requiredClassName.cursor}`)
+ 
     const style = window.getComputedStyle(cursorElement);
 
     // 指针所在位置的偏移量
-    const cursorOffsetLeft = Math.round(parseFloat(style.getPropertyValue('left')))
+    const cursorOffsetLeft = parseFloat(style.getPropertyValue('left'))
 
     // Which line
     const lineIndex = Math.round(parseFloat(style.getPropertyValue('top')) / 17)
 
     // Obtain element for all line
-    const linesElement = activeCell.querySelectorAll('.CodeMirror-line:not(.displayed)')
-
+    const linesElement = activeCell.querySelectorAll(`.${currctJupyterModel.requiredClassName.lines}`)
     // code dom element length in active line
-    const codeElementWdth = linesElement[lineIndex].querySelector("span").offsetWidth
+
+    let codeElementWidth = 0
+    if (!containsSingleBr(linesElement[lineIndex])){
+        // small code blocks, for example "def"、"as"、"if"...
+        const smallCodeBlocksSpans =  Array.from(linesElement[lineIndex].querySelectorAll("span"))
+        if (smallCodeBlocksSpans.length === 0){
+            codeElementWidth = linesElement[lineIndex].textContent.length * 7.83
+        }else{
+            codeElementWidth = smallCodeBlocksSpans.reduce((sum, el) => sum + el.getBoundingClientRect().width, 0) + (smallCodeBlocksSpans.length - 1) * 7.83
+        }
+    }
 
     let cursorAtEndInLine = true
-    // Determine whether the pointer is at the end of a line, Because there is a left marring, so -4, but due to precision issues so -3
-    if (cursorOffsetLeft - 3 < codeElementWdth) {
-        cursorAtEndInLine = false
 
+    // The empty line pointer is 6, one character is 7.83, A reduction of 5 represents a redundancy of 1
+    if (cursorOffsetLeft - 5 < codeElementWidth) {
+        cursorAtEndInLine = false
     }
 
     for (let i = 0; i < linesElement.length; i++) {
-        if (i == lineIndex) {
-            cellContent.push({
-                "content": linesElement[i].textContent,
-                "cellIndex": cellIndex,
-                "isCursor": true,
-                "type": "code",
-                "lineIndex": i
-            })
-        } else {
-            cellContent.push({
-                "content": linesElement[i].textContent,
-                "cellIndex": cellIndex,
-                "isCursor": false,
-                "type": "code",
-                "lineIndex": i
-            })
-        }
+        const content = containsSingleBr(linesElement[i]) ? "\n" : linesElement[i].textContent
+        cellContent.push({
+            "content": content,
+            "cellIndex": cellIndex,
+            "isCursor": i == lineIndex,
+            "type": "code",
+            "lineIndex": i
+        })
+       
     }
 
     // Get complete cells
@@ -154,7 +159,6 @@ const getActiveCellPointerCode = (activeCell, cellIndex, currctJupyterModel) => 
     }
 
     return [cellContent, cursorAtEndInLine]
-
 }
 
 
@@ -188,14 +192,12 @@ const getActiveContext = (currctJupyterModel) => {
         if (i == activeCellIndex) {
             const [activeCellContent, cursorAtEndInLine] = getActiveCellPointerCode(activeCell, i, currctJupyterModel)
             if (!cursorAtEndInLine) return []
-
             context = [...context, ...activeCellContent]
         } else if (i < activeCellIndex) {
             const cellContent = getCellCode(cellElements[i], i, currctJupyterModel)
             context = [...context, ...cellContent]
         }
     }
-
     return context
 }
 
@@ -265,7 +267,6 @@ const getCellContentTextRequiredForOpenAI = (currctJupyterModel) => {
 
 function getCellContentTextRequiredForBigCode(currctJupyterModel) {
     const context = getActiveContext(currctJupyterModel)
-
     if(context.length == 0){
         return [null, null]
     }
